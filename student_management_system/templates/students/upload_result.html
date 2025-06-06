@@ -1,0 +1,298 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload Result - Student Management System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-upload me-2"></i>Upload Student Result</h2>
+        <p class="text-muted">Add academic results for students</p>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-plus-circle me-2"></i>Add New Result</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.student.id_for_label }}" class="form-label">
+                                    <i class="fas fa-user me-1"></i>Student
+                                </label>
+                                {{ form.student }}
+                                {% if form.student.errors %}
+                                    <div class="text-danger">{{ form.student.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="id_semester" class="form-label">
+                                    <i class="fas fa-calendar-alt me-1"></i>Semester
+                                </label>
+                                <select name="semester" id="id_semester" class="form-select" required>
+                                    <option value="">Select Semester</option>
+                                    <option value="1">1st Semester</option>
+                                    <option value="2">2nd Semester</option>
+                                    <option value="3">3rd Semester</option>
+                                    <option value="4">4th Semester</option>
+                                    <option value="5">5th Semester</option>
+                                    <option value="6">6th Semester</option>
+                                    <option value="7">7th Semester</option>
+                                    <option value="8">8th Semester</option>
+                                </select>
+                                {% if form.semester.errors %}
+                                    <div class="text-danger">{{ form.semester.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label for="id_subject" class="form-label">
+                                    <i class="fas fa-book me-1"></i>Subject
+                                </label>
+                                <select name="subject" id="id_subject" class="form-select" required disabled>
+                                    <option value="">First select a semester</option>
+                                </select>
+                                {% if form.subject.errors %}
+                                    <div class="text-danger">{{ form.subject.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.marks.id_for_label }}" class="form-label">
+                                    <i class="fas fa-trophy me-1"></i>Marks Obtained
+                                </label>
+                                {{ form.marks }}
+                                {% if form.marks.errors %}
+                                    <div class="text-danger">{{ form.marks.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.total_marks.id_for_label }}" class="form-label">
+                                    <i class="fas fa-calculator me-1"></i>Total Marks
+                                </label>
+                                {{ form.total_marks }}
+                                {% if form.total_marks.errors %}
+                                    <div class="text-danger">{{ form.total_marks.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.grade.id_for_label }}" class="form-label">
+                                    <i class="fas fa-medal me-1"></i>Grade
+                                </label>
+                                {{ form.grade }}
+                                {% if form.grade.errors %}
+                                    <div class="text-danger">{{ form.grade.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.exam_date.id_for_label }}" class="form-label">
+                                    <i class="fas fa-calendar me-1"></i>Exam Date
+                                </label>
+                                {{ form.exam_date }}
+                                {% if form.exam_date.errors %}
+                                    <div class="text-danger">{{ form.exam_date.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.result_file.id_for_label }}" class="form-label">
+                                    <i class="fas fa-file me-1"></i>Result File (Optional)
+                                </label>
+                                {{ form.result_file }}
+                                {% if form.result_file.errors %}
+                                    <div class="text-danger">{{ form.result_file.errors }}</div>
+                                {% endif %}
+                                <div class="form-text">Upload PDF or image file of the result (optional)</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-upload me-2"></i>Upload Result
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="fas fa-info-circle me-2"></i>Instructions</h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-check text-success me-2"></i>Select the student from dropdown</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Choose semester (1st to 8th)</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Select subject based on semester</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Input marks and total marks</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Assign appropriate grade</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Specify exam date</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Optionally upload result file</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6><i class="fas fa-chart-bar me-2"></i>Grading Scale</h6>
+            </div>
+            <div class="card-body">
+                <small>
+                    <div class="mb-1"><span class="badge bg-success">A+</span> 90-100%</div>
+                    <div class="mb-1"><span class="badge bg-success">A</span> 80-89%</div>
+                    <div class="mb-1"><span class="badge bg-primary">B+</span> 70-79%</div>
+                    <div class="mb-1"><span class="badge bg-primary">B</span> 60-69%</div>
+                    <div class="mb-1"><span class="badge bg-warning">C+</span> 50-59%</div>
+                    <div class="mb-1"><span class="badge bg-warning">C</span> 40-49%</div>
+                    <div><span class="badge bg-danger">F</span> Below 40%</div>
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Subject data organized by semester
+    const subjectsBySemester = {
+        '1': [
+            'Mathematics I',
+            'Physics I', 
+            'Chemistry',
+            'Engineering Graphics',
+            'Computer Programming',
+            'English Communication',
+            'Workshop Practice'
+        ],
+        '2': [
+            'Mathematics II',
+            'Physics II',
+            'Basic Electronics',
+            'Engineering Mechanics',
+            'Environmental Studies',
+            'Technical Communication',
+            'Engineering Drawing'
+        ],
+        '3': [
+            'Mathematics III',
+            'Data Structures',
+            'Object Oriented Programming',
+            'Digital Logic',
+            'Computer Organization',
+            'Discrete Mathematics',
+            'Database Management Systems'
+        ],
+        '4': [
+            'Mathematics IV',
+            'Operating Systems',
+            'Computer Networks',
+            'Software Engineering',
+            'Theory of Computation',
+            'Microprocessors',
+            'Web Technologies'
+        ],
+        '5': [
+            'Design and Analysis of Algorithms',
+            'Computer Graphics',
+            'Artificial Intelligence',
+            'Compiler Design',
+            'Mobile Application Development',
+            'Information Security',
+            'Human Computer Interaction'
+        ],
+        '6': [
+            'Machine Learning',
+            'Distributed Systems',
+            'Cloud Computing',
+            'Software Testing',
+            'Project Management',
+            'Advanced Database Systems',
+            'Internet of Things'
+        ],
+        '7': [
+            'Big Data Analytics',
+            'Cyber Security',
+            'Advanced Algorithms',
+            'Parallel Processing',
+            'Natural Language Processing',
+            'Blockchain Technology',
+            'Major Project I'
+        ],
+        '8': [
+            'Advanced Machine Learning',
+            'Software Architecture',
+            'Enterprise Systems',
+            'Research Methodology',
+            'Professional Ethics',
+            'Major Project II',
+            'Industrial Training'
+        ]
+    };
+
+    const semesterSelect = document.getElementById('id_semester');
+    const subjectSelect = document.getElementById('id_subject');
+
+    semesterSelect.addEventListener('change', function() {
+        const selectedSemester = this.value;
+        
+        // Clear existing options
+        subjectSelect.innerHTML = '';
+        
+        if (selectedSemester) {
+            // Enable subject dropdown
+            subjectSelect.disabled = false;
+            
+            // Add default option
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = 'Select Subject';
+            subjectSelect.appendChild(defaultOption);
+            
+            // Add subjects for selected semester
+            const subjects = subjectsBySemester[selectedSemester] || [];
+            subjects.forEach(function(subject) {
+                const option = document.createElement('option');
+                option.value = subject;
+                option.textContent = subject;
+                subjectSelect.appendChild(option);
+            });
+        } else {
+            // Disable subject dropdown
+            subjectSelect.disabled = true;
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = 'First select a semester';
+            subjectSelect.appendChild(defaultOption);
+        }
+    });
+});
+</script>
+{% endblock %}

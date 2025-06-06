@@ -1,0 +1,252 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Student Management System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h2>
+        <p class="text-muted">Welcome back, {{ user.first_name|default:user.username }}!</p>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">My Profile</h5>
+                        <p class="card-text">Manage your personal information</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-user fa-2x"></i>
+                    </div>
+                </div>
+                <a href="{% url 'student_profile' %}" class="btn btn-light">
+                    <i class="fas fa-arrow-right me-1"></i>View Profile
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">My Results</h5>
+                        <p class="card-text">View your academic results</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-chart-line fa-2x"></i>
+                    </div>
+                </div>
+                <a href="{% url 'student_results' %}" class="btn btn-light">
+                    <i class="fas fa-arrow-right me-1"></i>View Results
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    {% if user.is_staff %}
+    <div class="col-md-4">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">All Students</h5>
+                        <p class="card-text">Manage student records</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                </div>
+                <a href="{% url 'all_students' %}" class="btn btn-light">
+                    <i class="fas fa-arrow-right me-1"></i>Manage Students
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% if student %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle me-2"></i>Quick Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        {% if student.photo %}
+                            <img src="{{ student.photo.url }}" alt="Student Photo" class="img-fluid rounded">
+                        {% else %}
+                            <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 150px;">
+                                <i class="fas fa-user fa-3x text-muted"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-9">
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong>Enrollment ID:</strong></td>
+                                <td>{{ student.enrollment_id }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Name:</strong></td>
+                                <td>{{ student.name }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Email:</strong></td>
+                                <td>{{ student.email }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Phone:</strong></td>
+                                <td>{{ student.phone|default:"Not provided" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- All Semesters Progress Graph -->
+<div class="row mt-4">
+    <div class="col-md-10 offset-md-1">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-line me-2"></i>All Semesters Progress</h5>
+            </div>
+            <div class="card-body">
+                {% if all_semester_labels %}
+                    <canvas id="allSemestersChart" height="200"></canvas>
+                {% else %}
+                    <p class="text-muted text-center">No semester data available to display.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    #allSemestersChart {
+        max-width: 100%;
+        width: 100%;
+    }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    {% if all_semester_labels %}
+    const allSemestersCtx = document.getElementById('allSemestersChart').getContext('2d');
+    new Chart(allSemestersCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ all_semester_labels|safe }},
+            datasets: [
+                {
+                    type: 'bar',
+                    label: 'Average Grades',
+                    data: {{ all_semester_averages|safe }},
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',  // Light blue bars
+                    borderColor: 'rgb(54, 162, 235)',
+                    borderWidth: 1
+                },
+                {
+                    type: 'line',
+                    label: 'Trend',
+                    data: {{ all_semester_averages|safe }},
+                    borderColor: 'rgb(0, 128, 0)',  // Green line for trend
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.1,
+                    pointBackgroundColor: 'rgb(0, 128, 0)',
+                    pointBorderColor: 'rgb(0, 128, 0)',
+                    pointRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Grade (%)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Semester'
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+</script>
+{% else %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="alert alert-warning">
+            <h5><i class="fas fa-exclamation-triangle me-2"></i>Profile Incomplete</h5>
+            <p>Please complete your student profile to access all features.</p>
+            <a href="{% url 'student_profile' %}" class="btn btn-warning">
+                <i class="fas fa-user-edit me-1"></i>Complete Profile
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if user.is_staff %}
+<!-- Statistics Cards - Visible only to staff -->
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body text-center">
+                <h5><i class="fas fa-users fa-2x mb-2"></i></h5>
+                <h3>{{ total_students }}</h3>
+                <p>Total Students</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body text-center">
+                <h5><i class="fas fa-user-check fa-2x mb-2"></i></h5>
+                <h3>{{ active_students }}</h3>
+                <p>Active Students</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body text-center">
+                <h5><i class="fas fa-calendar fa-2x mb-2"></i></h5>
+                <h3>{{ new_this_year }}</h3>
+                <p>New This Year</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body text-center">
+                <h5><i class="fas fa-chart-line fa-2x mb-2"></i></h5>
+                <h3>{{ total_results }}</h3>
+                <p>Total Results</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

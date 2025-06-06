@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Fees - Student Management System{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2><i class="fas fa-wallet me-2"></i>Fees</h2>
+
+    {% if user.is_authenticated %}
+        {% if student or show_all_fees %}
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Fee Records</h5>
+                </div>
+                <div class="card-body">
+                    {% if show_all_fees %}
+                        <div class="mb-3">
+                            <form method="get">
+                                <label for="student_id" class="form-label">Filter by Student:</label>
+                                <select name="student_id" id="student_id" class="form-select" onchange="this.form.submit()">
+                                    <option value="">All Students</option>
+                                    {% for s in students %}
+                                        <option value="{{ s.id }}" {% if selected_student_id == s.id|stringformat:'s' %}selected{% endif %}>
+                                            {{ s.name }} ({{ s.enrollment_id }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </form>
+                        </div>
+                    {% endif %}
+                    {% if fee_records %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        {% if show_all_fees %}
+                                            <th>Student Name</th>
+                                            <th>Enrollment ID</th>
+                                        {% endif %}
+                                        <th>Semester</th>
+                                        <th>Amount</th>
+                                        <th>Due Date</th>
+                                        <th>Status</th>
+                                        <th>Payment Date</th>
+                                        {% if user.is_staff %}
+                                            <th>Actions</th>
+                                        {% endif %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for fee in fee_records %}
+                                        <tr>
+                                            {% if show_all_fees %}
+                                                <td>{{ fee.student_name }}</td>
+                                                <td>{{ fee.enrollment_id }}</td>
+                                            {% endif %}
+                                            <td>{{ fee.semester }}</td>
+                                            <td>{{ fee.amount }}</td>
+                                            <td>{{ fee.due_date }}</td>
+                                            <td>
+                                                {% if fee.is_paid %}
+                                                    <span class="badge bg-success">Paid</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Unpaid</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ fee.payment_date }}</td>
+                                            {% if user.is_staff %}
+                                                <td>
+                                                    <a href="{% url 'update_fee' fee.id %}" class="btn btn-sm btn-primary">
+                                                        <i class="fas fa-edit"></i> Update
+                                                    </a>
+                                                </td>
+                                            {% endif %}
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No fee records available.</p>
+                    {% endif %}
+                </div>
+            </div>
+        {% else %}
+            <div class="alert alert-warning mt-3">
+                <h5><i class="fas fa-exclamation-triangle me-2"></i>Profile Incomplete</h5>
+                <p>Please complete your student profile to access fee details.</p>
+                <a href="{% url 'student_profile' %}" class="btn btn-warning">
+                    <i class="fas fa-user-edit me-1"></i>Complete Profile
+                </a>
+            </div>
+        {% endif %}
+
+        {% if user.is_staff %}
+            <div class="mt-4">
+                <a href="{% url 'add_fee' %}" class="btn btn-success">
+                    <i class="fas fa-plus me-1"></i>Add Fee Record
+                </a>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="alert alert-danger mt-3">
+            <h5><i class="fas fa-exclamation-circle me-2"></i>Access Denied</h5>
+            <p>Please log in to view fee details.</p>
+            <a href="{% url 'login' %}" class="btn btn-primary">
+                <i class="fas fa-sign-in-alt me-1"></i>Login
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

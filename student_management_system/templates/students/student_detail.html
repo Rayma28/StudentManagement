@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Student Details</h2>
+    <div class="card">
+        <div class="card-body">
+            <p><strong>Enrollment ID:</strong> {{ student.enrollment_id }}</p>
+            <p><strong>Name:</strong> {{ student.name }}</p>
+            <p><strong>Email:</strong> {{ student.email }}</p>
+            <p><strong>Address:</strong> {{ student.address }}</p>
+        </div>
+    </div>
+
+    <h3 class="mt-4">Results</h3>
+    {% if current_semester_results %}
+        <div class="card mt-3" id="semester-{{ current_semester }}">
+            <div class="card-header">
+                <h5 class="mb-0">Semester: {{ current_semester }}</h5>
+            </div>
+            <div class="card-body">
+                <!-- Semester Results Graph -->
+                <div class="mb-4">
+                    {% if chart_labels %}
+                        <canvas id="semesterResultsChart" height="200"></canvas>
+                    {% else %}
+                        <p class="text-muted text-center">No results available to display for this semester.</p>
+                    {% endif %}
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Subject</th>
+                                <th>Score</th>
+                                <th>Percentage</th>
+                                <th>Grade</th>
+                                <th>Exam Date</th>
+                                <th>Uploaded At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for result in current_semester_results %}
+                                <tr>
+                                    <td>{{ result.subject }}</td>
+                                    <td>{{ result.marks }}</td>
+                                    <td>{{ result.percentage }}%</td>
+                                    <td>{{ result.grade }}</td>
+                                    <td>{{ result.exam_date|date:"Y-m-d" }}</td>
+                                    <td>{{ result.created_at|date:"Y-m-d H:i" }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="6">No results for this semester.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart.js Script -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+            {% if chart_labels %}
+            const semesterResultsCtx = document.getElementById('semesterResultsChart').getContext('2d');
+            new Chart(semesterResultsCtx, {
+                type: 'bar',
+                data: {
+                    labels: {{ chart_labels|safe }},
+                    datasets: [
+                        {
+                            type: 'bar',
+                            label: 'Grades',
+                            data: {{ chart_grades|safe }},
+                            backgroundColor: 'rgba(54, 162, 235, 0.5)',  // Light blue bars
+                            borderColor: 'rgb(54, 162, 235)',
+                            borderWidth: 1
+                        },
+                        {
+                            type: 'line',
+                            label: 'Trend',
+                            data: {{ chart_grades|safe }},
+                            borderColor: 'rgb(0, 128, 0)',  // Green line for trend
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.1,
+                            pointBackgroundColor: 'rgb(0, 128, 0)',
+                            pointBorderColor: 'rgb(0, 128, 0)',
+                            pointRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Grade (%)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Subject'
+                            }
+                        }
+                    }
+                }
+            });
+            {% endif %}
+        </script>
+    {% else %}
+        <p>No results uploaded for this student yet.</p>
+    {% endif %}
+
+    {% if paginator.num_pages > 1 %}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% for num in paginator.page_range %}
+                    <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </nav>
+    {% endif %}
+</div>
+{% endblock %}

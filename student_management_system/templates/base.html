@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Student Management System{% endblock %}</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #f0f4f8;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Particle background container */
+        #particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: linear-gradient(135deg, #74ebd5, #acb6e5);
+            opacity: 0.8;
+        }
+
+        /* Ensure content is readable */
+        .navbar-brand {
+            font-weight: bold;
+        }
+
+        .card {
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(33, 40, 50, 0.15);
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 10px;
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 56px;
+            height: calc(100vh - 56px);
+            background-color: rgba(52, 58, 64, 0.9);
+            overflow-y: auto;
+        }
+
+        .sidebar .nav-link {
+            color: #fff;
+        }
+
+        .sidebar .nav-link:hover {
+            background-color: #495057;
+        }
+
+        .main-content {
+            padding: 20px;
+            min-height: calc(100vh - 56px);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .container-fluid {
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        .row {
+            margin-left: 0;
+            margin-right: 0;
+        }
+
+        .navbar-custom {
+            background-color: #16a085;
+        }
+    </style>
+</head>
+<body>
+    <!-- Particle Background -->
+    <canvas id="particle-canvas"></canvas>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'dashboard' %}">
+                <i class="fas fa-graduation-cap me-2"></i>Student Management System
+            </a>
+            
+            {% if user.is_authenticated %}
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user me-1"></i>{{ user.username }}
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'student_profile' %}">
+                            <i class="fas fa-user-edit me-2"></i>Profile
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'logout' %}">
+                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            {% if user.is_authenticated %}
+            <!-- Sidebar -->
+            <div class="col-md-2 p-0">
+                <div class="sidebar">
+                    <div class="nav flex-column">
+                        <a class="nav-link" href="{% url 'dashboard' %}">
+                            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                        </a>
+                        <a class="nav-link" href="{% url 'student_profile' %}">
+                            <i class="fas fa-user me-2"></i>My Profile
+                        </a>
+                        <a class="nav-link" href="{% url 'student_results' %}">
+                            <i class="fas fa-chart-line me-2"></i>My Results
+                        </a>
+                        <a class="nav-link" href="{% url 'fees' %}">
+                            <i class="fas fa-wallet me-2"></i>Fees
+                        </a>
+                        {% if user.is_staff %}
+                        <hr class="text-white">
+                        <h6 class="text-white-50 px-3">Admin Panel</h6>
+                        <a class="nav-link" href="{% url 'all_students' %}">
+                            <i class="fas fa-users me-2"></i>All Students
+                        </a>
+                        <a class="nav-link" href="{% url 'upload_result' %}">
+                            <i class="fas fa-upload me-2"></i>Upload Results
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-10">
+                <div class="main-content">
+            {% else %}
+            <div class="col-12">
+                <div class="main-content">
+            {% endif %}
+                    <!-- Messages -->
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Page Content -->
+                    {% block content %}
+                    {% endblock %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Particle effect for a subtle, educational-themed background
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Particle class
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 5 + 2;
+                this.speedX = Math.random() * 1 - 0.5;
+                this.speedY = Math.random() * 1 - 0.5;
+                this.icon = ['📚', '✏️', '🎓', '🔢', '🔬'][Math.floor(Math.random() * 5)];
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+
+                // Bounce off edges
+                if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+            }
+
+            draw() {
+                ctx.font = `${this.size * 2}px Arial`;
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.fillText(this.icon, this.x, this.y);
+            }
+        }
+
+        // Particle array
+        const particlesArray = [];
+        const numberOfParticles = 50;
+        for (let i = 0; i < numberOfParticles; i++) {
+            particlesArray.push(new Particle());
+        }
+
+        // Animation loop
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < particlesArray.length; i++) {
+                particlesArray[i].update();
+                particlesArray[i].draw();
+            }
+            requestAnimationFrame(animate);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        animate();
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

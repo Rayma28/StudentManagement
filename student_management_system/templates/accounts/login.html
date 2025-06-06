@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+
+{% block title %}Login - Student Management System{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="col-md-8 col-lg-6">
+        <div class="card border-0 shadow-lg">
+            <!-- Card Header with Teal Background -->
+            <div class="card-header text-center py-4" style="background-color: #16a085; color: white;">
+                <h3><i class="fas fa-graduation-cap me-2"></i> Student Portal Login</h3>
+            </div>
+            
+            <!-- Card Body -->
+            <div class="card-body p-5">
+                <!-- Messages/Alerts -->
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                <!-- Login Form -->
+                <form method="post" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    <!-- Username Field -->
+                    <div class="mb-4">
+                        <label for="username" class="form-label fw-bold">
+                            <i class="fas fa-user me-2 text-teal"></i>Username
+                        </label>
+                        <div class="input-group">
+                            <input type="text" 
+                                   class="form-control form-control-lg" 
+                                   id="username" 
+                                   name="username" 
+                                   placeholder="Enter your username" 
+                                   required
+                                   autofocus>
+                            <div class="invalid-feedback">
+                                Please enter your username.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Password Field -->
+                    <div class="mb-4">
+                        <label for="password" class="form-label fw-bold">
+                            <i class="fas fa-lock me-2 text-teal"></i>Password
+                        </label>
+                        <div class="input-group">
+                            <input type="password" 
+                                   class="form-control form-control-lg" 
+                                   id="password" 
+                                   name="password" 
+                                   placeholder="Enter your password" 
+                                   required>
+                            <button class="btn btn-outline-secondary toggle-password" type="button">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <div class="invalid-feedback">
+                                Please enter your password.
+                            </div>
+                        </div>
+                        <div class="text-end mt-2">
+                            <a href="{% url 'password_reset' %}" class="text-decoration-none text-teal fw-bold">Forgot Password?</a>
+                        </div>
+                    </div>
+                    
+                    <!-- Remember Me Checkbox -->
+                    <div class="mb-4 form-check">
+                        <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                        <label class="form-check-label" for="remember">Remember me</label>
+                    </div>
+                    
+                    <!-- Login Button -->
+                    <button type="submit" class="btn btn-lg w-100 text-white mb-3" style="background-color: #16a085;">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login to Portal
+                    </button>
+                    
+                    <!-- Registration Link -->
+                    <div class="text-center">
+                        <p class="mb-0">Don't have an account? 
+                            <a href="{% url 'register' %}" class="text-decoration-none fw-bold text-teal">
+                                Register here
+                            </a>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .border-teal {
+        border-color: #16a085 !important;
+    }
+    .text-teal {
+        color: #16a085 !important;
+    }
+    .card {
+        border-radius: 15px;
+        overflow: hidden;
+    }
+    .form-control:focus {
+        border-color: #16a085;
+        box-shadow: 0 0 0 0.25rem rgba(22, 160, 133, 0.25);
+    }
+    .toggle-password {
+        border-color: #ced4da;
+        border-left: none;
+    }
+    .toggle-password:hover {
+        background-color: #f8f9fa;
+    }
+    .btn-teal {
+        background-color: #16a085;
+        color: white;
+    }
+    .btn-teal:hover {
+        background-color: #138a72;
+        color: white;
+    }
+</style>
+
+<script>
+    // Toggle password visibility
+    document.querySelector('.toggle-password').addEventListener('click', function() {
+        const passwordInput = document.getElementById('password');
+        const icon = this.querySelector('i');
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            passwordInput.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    });
+
+    // Form validation
+    (function() {
+        'use strict';
+        const forms = document.querySelectorAll('.needs-validation');
+        Array.from(forms).forEach(function(form) {
+            form.addEventListener('submit', function(event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    })();
+</script>
+{% endblock %}

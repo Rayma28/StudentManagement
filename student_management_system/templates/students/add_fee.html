@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Add Fee - Student Management System{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2><i class="fas fa-plus me-2"></i>Add Fee Record</h2>
+    <div class="card mt-3">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="student_id" class="form-label">Select Student</label>
+                    <select name="student_id" id="student_id" class="form-select" required>
+                        <option value="">Select a student</option>
+                        {% for student in students %}
+                            <option value="{{ student.id }}">{{ student.name }} ({{ student.enrollment_id }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% for field in form %}
+                    <div class="mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}
+                            <div class="text-danger">
+                                {% for error in field.errors %}
+                                    <p>{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-save me-1"></i>Add Fee
+                </button>
+                <a href="{% url 'fees' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Cancel
+                </a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
