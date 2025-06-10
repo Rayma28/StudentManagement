@@ -14,33 +14,21 @@ from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 import json
 from django.core.mail import send_mail
+from students.forms import RegistrationForm
+
 
 def register_view(request):
     if request.method == 'POST':
-        username = request.POST['username']
-        email = request.POST['email']
-        password1 = request.POST['password1']
-        password2 = request.POST['password2']
-        
-        if password1 != password2:
-            messages.error(request, 'Passwords do not match')
-            return render(request, 'accounts/register.html')
-        
-        if User.objects.filter(username=username).exists():
-            messages.error(request, 'Username already exists')
-            return render(request, 'accounts/register.html')
-        
-        if User.objects.filter(email=email).exists():
-            messages.error(request, 'Email already exists')
-            return render(request, 'accounts/register.html')
-        
-        user = User.objects.create_user(username=username, email=email, password=password1)
-        UserProfile.objects.create(user=user, user_type='student')
-        
-        messages.success(request, 'Account created successfully')
-        return redirect('login')
-    
-    return render(request, 'accounts/register.html')
+        form = RegistrationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Registration successful! Please log in.')
+            return redirect('login')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = RegistrationForm()
+    return render(request, 'accounts/register.html', {'form': form})
 
 def login_view(request):
     # Define default images for different user types
@@ -108,18 +96,25 @@ def dashboard_view(request):
     except Student.DoesNotExist:
         student = None
     
-    # Get statistics data (for staff)
-    students = Student.objects.all()
-    total_students = students.count()
-    active_students = students.filter(is_active=True).count()
-    current_year = datetime.now().year
-    new_this_year = students.filter(created_at__year=current_year).count()
-    total_results = Result.objects.count()
+    # Get statistics data (for staff only)
+    total_students = 0
+    active_students = 0
+    new_this_year = 0
+    total_results = 0
+    if request.user.is_staff:
+        students = Student.objects.all()
+        total_students = students.count()
+        active_students = students.filter(is_active=True).count()
+        current_year = datetime.now().year
+        new_this_year = students.filter(created_at__year=current_year).count()
+        total_results = Result.objects.count()
     
     # Initialize variables for student progress graphs
     all_semester_labels = []
     all_semester_averages = []
     
+    # Get fee-related data for all users
+    fee_data = {}
     if student:
         # All Semesters Progress: Get average grade per semester
         all_semesters = Result.objects.filter(student=student).values('semester').distinct().order_by('semester')
@@ -130,6 +125,38 @@ def dashboard_view(request):
                 avg_grade = sum(convert_grade_to_numeric(r.grade) for r in semester_results) / semester_results.count()
                 all_semester_labels.append(semester_name)
                 all_semester_averages.append(round(avg_grade, 2))
+        
+        # Fee data: Using the Fee model with amount, is_paid, and due_date
+        try:
+            latest_fee = student.fees.order_by('-due_date').first()  # Using related_name='fees'
+            if latest_fee:
+                fee_data = {
+                    'amount': latest_fee.amount,
+                    'is_paid': latest_fee.is_paid,
+                    'status': 'Paid' if latest_fee.is_paid else 'Pending',
+                    'due_date': latest_fee.due_date.strftime('%Y-%m-%d') if latest_fee.due_date else 'N/A',
+                    'payment_date': latest_fee.payment_date.strftime('%Y-%m-%d') if latest_fee.payment_date else 'N/A',
+                    'semester': latest_fee.semester,
+                }
+            else:
+                fee_data = {
+                    'amount': 0,
+                    'is_paid': False,
+                    'status': 'No fees recorded',
+                    'due_date': 'N/A',
+                    'payment_date': 'N/A',
+                    'semester': 'N/A',
+                }
+        except AttributeError:
+            # Handle case where Fee model or relationship is misconfigured
+            fee_data = {
+                'amount': 0,
+                'is_paid': False,
+                'status': 'Fee data unavailable',
+                'due_date': 'N/A',
+                'payment_date': 'N/A',
+                'semester': 'N/A',
+            }
     
     # Context for template
     context = {
@@ -140,6 +167,7 @@ def dashboard_view(request):
         'total_results': total_results,
         'all_semester_labels': json.dumps(all_semester_labels),
         'all_semester_averages': json.dumps(all_semester_averages),
+        'fee_data': fee_data,
     }
     return render(request, 'accounts/dashboard.html', context)
 

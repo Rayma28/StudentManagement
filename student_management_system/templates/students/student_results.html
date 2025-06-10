@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Results{% endblock %}
+
+{% block content %}
+{% if user.is_authenticated %}
+<div class="container mx-auto p-4">
+    <h2 class="text-2xl font-semibold mb-4">My Results</h2>
+    {% if user.is_staff %}
+    <!-- Staff View: Filter by Student and Semester -->
+    <section class="mb-8">
+        <div class="card p-4">
+            <form method="get" class="mb-4">
+                <div class="row">
+                    <div class="col-md-5 mb-3">
+                        <label for="student" class="form-label">Select Student</label>
+                        <select name="student" id="student" class="form-select">
+                            <option value="">All Students</option>
+                            {% for student in students %}
+                            <option value="{{ student.id }}" {% if student.id|stringformat:"s" == request.GET.student %}selected{% endif %}>
+                                {{ student.name }} ({{ student.enrollment_id }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-5 mb-3">
+                        <label for="semester" class="form-label">Select Semester</label>
+                        <select name="semester" id="semester" class="form-select">
+                            <option value="">All Semesters</option>
+                            {% for semester in semesters %}
+                            <option value="{{ semester.id }}" {% if semester.id|stringformat:"s" == request.GET.semester %}selected{% endif %}>
+                                Semester {{ semester.semester_number }} ({{ semester.course.name }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2 mb-3 align-self-end">
+                        <button type="submit" class="btn btn-primary w-100">Filter</button>
+                    </div>
+                </div>
+            </form>
+            {% if current_semester %}
+            <h3 class="text-xl font-semibold mb-3">Results for Semester {{ current_semester.semester_number }} ({{ current_semester.course.name }})</h3>
+            {% endif %}
+            <table class="table table-bordered">
+                <thead>
+                    <tr class="bg-light">
+                        <th>Student</th>
+                        <th>Semester</th>
+                        <th>Subject</th>
+                        <th>Marks</th>
+                        <th>Total Marks</th>
+                        <th>Percentage</th>
+                        <th>Grade</th>
+                        <th>Exam Date</th>
+                        <th>Result File</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in results %}
+                    <tr>
+                        <td>{{ result.student.name }} ({{ result.student.enrollment_id }})</td>
+                        <td>{{ result.semester.semester_number }} ({{ result.semester.course.name }})</td>
+                        <td>{{ result.subject.name }} ({{ result.subject.code }})</td>
+                        <td>{{ result.marks }}</td>
+                        <td>{{ result.total_marks }}</td>
+                        <td>{{ result.percentage }}%</td>
+                        <td>{{ result.grade }}</td>
+                        <td>{{ result.exam_date|date:"Y-m-d" }}</td>
+                        <td>
+                            {% if result.result_file %}
+                            <a href="{{ result.result_file.url }}" class="btn btn-sm btn-info" target="_blank">View</a>
+                            {% else %}
+                            N/A
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center">No results found for this semester.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <!-- Pagination for Staff when a student is selected -->
+            {% if student_selected and page_obj.has_other_pages %}
+            <nav aria-label="Semester pagination">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if request.GET.student %}student={{ request.GET.student }}&{% endif %}{% if request.GET.semester %}semester={{ request.GET.semester }}&{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
+                    </li>
+                    {% endif %}
+                    {% for num in page_obj.paginator.page_range %}
+                    <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                        <a class="page-link" href="?{% if request.GET.student %}student={{ request.GET.student }}&{% endif %}{% if request.GET.semester %}semester={{ request.GET.semester }}&{% endif %}page={{ num }}">Semester {{ num }}</a>
+                    </li>
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if request.GET.student %}student={{ request.GET.student }}&{% endif %}{% if request.GET.semester %}semester={{ request.GET.semester }}&{% endif %}page={{ page_obj.next_page_number }}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </section>
+    {% else %}
+    <!-- Student View: Show Own Results with Pagination -->
+    <section class="mb-8">
+        <div class="card p-4">
+            {% if current_semester %}
+            <h3 class="text-xl font-semibold mb-3">Results for Semester {{ current_semester.semester_number }} ({{ current_semester.course.name }})</h3>
+            {% endif %}
+            <table class="table table-bordered">
+                <thead>
+                    <tr class="bg-light">
+                        <th>Semester</th>
+                        <th>Subject</th>
+                        <th>Marks</th>
+                        <th>Total Marks</th>
+                        <th>Percentage</th>
+                        <th>Grade</th>
+                        <th>Exam Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in results %}
+                    <tr>
+                        <td>{{ result.semester.semester_number }} ({{ result.semester.course.name }})</td>
+                        <td>{{ result.subject.name }} ({{ result.subject.code }})</td>
+                        <td>{{ result.marks }}</td>
+                        <td>{{ result.total_marks }}</td>
+                        <td>{{ result.percentage }}%</td>
+                        <td>{{ result.grade }}</td>
+                        <td>{{ result.exam_date|date:"Y-m-d" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center">No results found for this semester.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <!-- Pagination for Students -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Semester pagination">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                    </li>
+                    {% endif %}
+                    {% for num in page_obj.paginator.page_range %}
+                    <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                        <a class="page-link" href="?page={{ num }}">Semester {{ num }}</a>
+                    </li>
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </section>
+    {% endif %}
+</div>
+{% else %}
+<div class="alert alert-danger" role="alert">
+    <i class="fas fa-exclamation-triangle me-2"></i>Please log in to view results.
+</div>
+{% endif %}
+{% endblock %}

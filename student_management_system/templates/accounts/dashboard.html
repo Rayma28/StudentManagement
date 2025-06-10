@@ -49,31 +49,29 @@
         </div>
     </div>
     
-    {% if user.is_staff %}
     <div class="col-md-4">
-        <div class="card text-white bg-warning">
+        <div class="card text-white bg-info">
             <div class="card-body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h5 class="card-title">All Students</h5>
-                        <p class="card-text">Manage student records</p>
+                        <h5 class="card-title">My Fees</h5>
+                        <p class="card-text">View and manage your fee payments</p>
                     </div>
                     <div class="align-self-center">
-                        <i class="fas fa-users fa-2x"></i>
+                        <i class="fas fa-dollar-sign fa-2x"></i>
                     </div>
                 </div>
-                <a href="{% url 'all_students' %}" class="btn btn-light">
-                    <i class="fas fa-arrow-right me-1"></i>Manage Students
+                <a href="{% url 'my_fees' %}" class="btn btn-light">
+                    <i class="fas fa-arrow-right me-1"></i>View Fees
                 </a>
             </div>
         </div>
     </div>
-    {% endif %}
 </div>
 
 {% if student %}
 <div class="row mt-4">
-    <div class="col-12">
+    <div class="col-md-12">
         <div class="card">
             <div class="card-header">
                 <h5><i class="fas fa-info-circle me-2"></i>Quick Information</h5>
@@ -117,10 +115,10 @@
 
 <!-- All Semesters Progress Graph -->
 <div class="row mt-4">
-    <div class="col-md-10 offset-md-1">
+    <div class="col-md-12">
         <div class="card">
             <div class="card-header">
-                <h5><i class="fas fa-chart-line me-2"></i>All Semesters Progress</h5>
+                <h5><i class="fas fa-chart-line me-2"></i>Academic Progress</h5>
             </div>
             <div class="card-body">
                 {% if all_semester_labels %}
@@ -153,7 +151,7 @@
                     type: 'bar',
                     label: 'Average Grades',
                     data: {{ all_semester_averages|safe }},
-                    backgroundColor: 'rgba(54, 162, 235, 0.5)',  // Light blue bars
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
                     borderColor: 'rgb(54, 162, 235)',
                     borderWidth: 1
                 },
@@ -161,7 +159,7 @@
                     type: 'line',
                     label: 'Trend',
                     data: {{ all_semester_averages|safe }},
-                    borderColor: 'rgb(0, 128, 0)',  // Green line for trend
+                    borderColor: 'rgb(0, 128, 0)',
                     borderWidth: 2,
                     fill: false,
                     tension: 0.1,
@@ -206,7 +204,7 @@
         </div>
     </div>
 </div>
-{% endif %}
+{% endif %} 
 
 {% if user.is_staff %}
 <!-- Statistics Cards - Visible only to staff -->

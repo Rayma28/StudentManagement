@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block title %}My Fees{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>My Fees</h2>
+    
+    {% if is_staff %}
+    <div class="mb-3">
+        <a href="{% url 'add_fee_record' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add New Fee Record
+        </a>
+    </div>
+    {% endif %}
+    
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead class="thead-dark">
+                        <tr>
+                            {% if is_staff %}
+                            <th>Student</th>
+                            {% endif %}
+                            <th>Amount</th>
+                            <th>Payment Date</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
+                            <th>Payment Method</th>
+                            <th>Description</th>
+                            {% if is_staff %}
+                            <th>Actions</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in fee_records %}
+                        <tr>
+                            {% if is_staff %}
+                            <td>{{ record.student }}</td>
+                            {% endif %}
+                            <td>${{ record.amount }}</td>
+                            <td>{{ record.payment_date|date:"Y-m-d" }}</td>
+                            <td>{{ record.due_date|date:"Y-m-d" }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if record.status == 'paid' %}bg-success
+                                    {% elif record.status == 'unpaid' %}bg-danger
+                                    {% else %}bg-warning{% endif %}">
+                                    {{ record.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ record.get_payment_method_display }}</td>
+                            <td>{{ record.description|truncatechars:30 }}</td>
+                            {% if is_staff %}
+                            <td>
+                                <a href="{% url 'edit_fee_record' record.pk %}" class="btn btn-sm btn-warning">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'delete_fee_record' record.pk %}" class="btn btn-sm btn-danger">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="{% if is_staff %}8{% else %}6{% endif %}" class="text-center">No fee records found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

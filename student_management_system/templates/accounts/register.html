@@ -4,30 +4,56 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-6 col-lg-4">
+    <div class="col-md-8 col-lg-6">
         <div class="card">
             <div class="card-header text-center">
                 <h4><i class="fas fa-user-plus me-2"></i>Register</h4>
             </div>
             <div class="card-body">
-                <form method="post">
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {{ form.non_field_errors }}
+                    </div>
+                {% endif %}
+                <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
+
+                    <!-- USER ACCOUNT FIELDS -->
+                    <h5>User Account</h5>
                     <div class="mb-3">
-                        <label for="username" class="form-label">Username</label>
-                        <input type="text" class="form-control" id="username" name="username" required>
+                        {{ form.username.label_tag }}
+                        {{ form.username }}
+                        {{ form.username.errors }}
                     </div>
                     <div class="mb-3">
-                        <label for="email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="email" name="email" required>
+                        {{ form.email.label_tag }}
+                        {{ form.email }}
+                        {{ form.email.errors }}
                     </div>
                     <div class="mb-3">
-                        <label for="password1" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="password1" name="password1" required>
+                        {{ form.password1.label_tag }}
+                        {{ form.password1 }}
+                        {{ form.password1.errors }}
                     </div>
                     <div class="mb-3">
-                        <label for="password2" class="form-label">Confirm Password</label>
-                        <input type="password" class="form-control" id="password2" name="password2" required>
+                        {{ form.password2.label_tag }}
+                        {{ form.password2 }}
+                        {{ form.password2.errors }}
                     </div>
+
+                    <!-- ENROLLMENT FIELDS -->
+                    <h5 class="mt-4">Enrollment Information</h5>
+                    <div class="mb-3">
+                        {{ form.department.label_tag }}
+                        {{ form.department }}
+                        {{ form.department.errors }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.enrollment_date.label_tag }}
+                        {{ form.enrollment_date }}
+                        {{ form.enrollment_date.errors }}
+                    </div>
+
                     <button type="submit" class="btn btn-success w-100">
                         <i class="fas fa-user-plus me-2"></i>Register
                     </button>

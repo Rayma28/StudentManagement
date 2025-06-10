@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Departments, Courses, and Enrollments{% endblock %}
+
+{% block content %}
+{% if user.is_staff %}
+<div class="container mx-auto p-4">
+    <!-- Department Section -->
+    <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4">Departments</h2>
+        <div class="card p-4">
+            <form method="post" class="mb-4">
+                {% csrf_token %}
+                {{ dept_form.as_p }}
+                <button type="submit" name="dept_submit" class="btn btn-primary">Add Department</button>
+            </form>
+            <table class="table table-bordered">
+                <thead>
+                    <tr class="bg-light">
+                        <th>Name</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dept in departments %}
+                    <tr>
+                        <td>{{ dept.name }}</td>
+                        <td>{{ dept.description|default:"N/A" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="2" class="text-center">No departments found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Course Section -->
+    <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4">Courses</h2>
+        <div class="card p-4">
+            <form method="post" class="mb-4">
+                {% csrf_token %}
+                {{ course_form.as_p }}
+                <button type="submit" name="course_submit" class="btn btn-primary">Add Course</button>
+            </form>
+            <table class="table table-bordered">
+                <thead>
+                    <tr class="bg-light">
+                        <th>Name</th>
+                        <th>Department</th>
+                        <th>Duration (Years)</th>
+                        <th>Total Semesters</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for course in courses %}
+                    <tr>
+                        <td>{{ course.name }}</td>
+                        <td>{{ course.department.name }}</td>
+                        <td>{{ course.duration_years }}</td>
+                        <td>{{ course.total_semesters }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center">No courses found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Semester Section -->
+    <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4">Semesters</h2>
+        <div class="card p-4">
+            <form method="post" class="mb-4">
+                {% csrf_token %}
+                {{ semester_form.as_p }}
+                <button type="submit" name="semester_submit" class="btn btn-primary">Add Semester</button>
+            </form>
+            <table class="table table-bordered">
+                <thead>
+                    <tr class="bg-light">
+                        <th>Semester Number</th>
+                        <th>Course</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for semester in semesters %}
+                    <tr>
+                        <td>{{ semester.semester_number }}</td>
+                        <td>{{ semester.course.name }} ({{ semester.course.department.name }})</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="2" class="text-center">No semesters found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Subject Section -->
+    <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4">Subjects</h2>
+        <div class="card p-4">
+            <form method="post" class="mb-4">
+                {% csrf_token %}
+                {{ subject_form.as_p }}
+                <button type="submit" name="subject_submit" class="btn btn-primary">Add Subject</button>
+            </form>
+            <table class="table table-bordered">
+                <thead>
+                    <tr class="bg-light">
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Semester</th>
+                        <th>Credits</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for subject in subjects %}
+                    <tr>
+                        <td>{{ subject.code }}</td>
+                        <td>{{ subject.name }}</td>
+                        <td>{{ subject.semester.semester_number }} ({{ subject.semester.course.name }})</td>
+                        <td>{{ subject.credits }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center">No subjects found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Enrollment Section -->
+    <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4">Enrollments</h2>
+        <div class="card p-4">
+            <form method="post" class="mb-4">
+                {% csrf_token %}
+                {{ enroll_form.as_p }}
+                <button type="submit" name="enroll_submit" class="btn btn-primary">Enroll Student</button>
+            </form>
+            <table class="table table-bordered">
+                <thead>
+                    <tr class="bg-light">
+                        <th>Student</th>
+                        <th>Department</th>
+                        <th>Course</th>
+                        <th>Enrollment Date</th>
+                        <th>Active</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for enroll in enrollments %}
+                    <tr>
+                        <td>{{ enroll.student.name }} ({{ enroll.student.enrollment_id }})</td>
+                        <td>{{ enroll.department.name }}</td>
+                        <td>{{ enroll.course.name }}</td>
+                        <td>{{ enroll.enrollment_date|date:"Y-m-d" }}</td>
+                        <td>{{ enroll.is_active|yesno:"Yes,No" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">No enrollments found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% else %}
+<div class="alert alert-danger" role="alert">
+    <i class="fas fa-exclamation-triangle me-2"></i>Access Denied: This page is only accessible to staff members.
+</div>
+{% endif %}
+{% endblock %}

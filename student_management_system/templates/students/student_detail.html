@@ -9,6 +9,8 @@
             <p><strong>Name:</strong> {{ student.name }}</p>
             <p><strong>Email:</strong> {{ student.email }}</p>
             <p><strong>Address:</strong> {{ student.address }}</p>
+            <p><strong>Department:</strong> {{ department_name }}</p>
+            <p><strong>Course:</strong> {{ course_name }}</p>
         </div>
     </div>
 
@@ -43,7 +45,7 @@
                         <tbody>
                             {% for result in current_semester_results %}
                                 <tr>
-                                    <td>{{ result.subject }}</td>
+                                    <td>{{ result.subject.name }}</td>
                                     <td>{{ result.marks }}</td>
                                     <td>{{ result.percentage }}%</td>
                                     <td>{{ result.grade }}</td>

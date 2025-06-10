@@ -33,20 +33,10 @@
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="id_semester" class="form-label">
+                                <label for="{{ form.semester.id_for_label }}" class="form-label">
                                     <i class="fas fa-calendar-alt me-1"></i>Semester
                                 </label>
-                                <select name="semester" id="id_semester" class="form-select" required>
-                                    <option value="">Select Semester</option>
-                                    <option value="1">1st Semester</option>
-                                    <option value="2">2nd Semester</option>
-                                    <option value="3">3rd Semester</option>
-                                    <option value="4">4th Semester</option>
-                                    <option value="5">5th Semester</option>
-                                    <option value="6">6th Semester</option>
-                                    <option value="7">7th Semester</option>
-                                    <option value="8">8th Semester</option>
-                                </select>
+                                {{ form.semester }}
                                 {% if form.semester.errors %}
                                     <div class="text-danger">{{ form.semester.errors }}</div>
                                 {% endif %}
@@ -57,12 +47,10 @@
                     <div class="row">
                         <div class="col-md-12">
                             <div class="mb-3">
-                                <label for="id_subject" class="form-label">
+                                <label for="{{ form.subject.id_for_label }}" class="form-label">
                                     <i class="fas fa-book me-1"></i>Subject
                                 </label>
-                                <select name="subject" id="id_subject" class="form-select" required disabled>
-                                    <option value="">First select a semester</option>
-                                </select>
+                                {{ form.subject }}
                                 {% if form.subject.errors %}
                                     <div class="text-danger">{{ form.subject.errors }}</div>
                                 {% endif %}
@@ -149,11 +137,11 @@
             </div>
             <div class="card-body">
                 <ul class="list-unstyled">
-                    <li><i class="fas fa-check text-success me-2"></i>Select the student from dropdown</li>
-                    <li><i class="fas fa-check text-success me-2"></i>Choose semester (1st to 8th)</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Select the student from dropdown (if applicable)</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Choose the appropriate semester</li>
                     <li><i class="fas fa-check text-success me-2"></i>Select subject based on semester</li>
                     <li><i class="fas fa-check text-success me-2"></i>Input marks and total marks</li>
-                    <li><i class="fas fa-check text-success me-2"></i>Assign appropriate grade</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Grade will be auto-calculated</li>
                     <li><i class="fas fa-check text-success me-2"></i>Specify exam date</li>
                     <li><i class="fas fa-check text-success me-2"></i>Optionally upload result file</li>
                 </ul>
@@ -181,118 +169,45 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Subject data organized by semester
-    const subjectsBySemester = {
-        '1': [
-            'Mathematics I',
-            'Physics I', 
-            'Chemistry',
-            'Engineering Graphics',
-            'Computer Programming',
-            'English Communication',
-            'Workshop Practice'
-        ],
-        '2': [
-            'Mathematics II',
-            'Physics II',
-            'Basic Electronics',
-            'Engineering Mechanics',
-            'Environmental Studies',
-            'Technical Communication',
-            'Engineering Drawing'
-        ],
-        '3': [
-            'Mathematics III',
-            'Data Structures',
-            'Object Oriented Programming',
-            'Digital Logic',
-            'Computer Organization',
-            'Discrete Mathematics',
-            'Database Management Systems'
-        ],
-        '4': [
-            'Mathematics IV',
-            'Operating Systems',
-            'Computer Networks',
-            'Software Engineering',
-            'Theory of Computation',
-            'Microprocessors',
-            'Web Technologies'
-        ],
-        '5': [
-            'Design and Analysis of Algorithms',
-            'Computer Graphics',
-            'Artificial Intelligence',
-            'Compiler Design',
-            'Mobile Application Development',
-            'Information Security',
-            'Human Computer Interaction'
-        ],
-        '6': [
-            'Machine Learning',
-            'Distributed Systems',
-            'Cloud Computing',
-            'Software Testing',
-            'Project Management',
-            'Advanced Database Systems',
-            'Internet of Things'
-        ],
-        '7': [
-            'Big Data Analytics',
-            'Cyber Security',
-            'Advanced Algorithms',
-            'Parallel Processing',
-            'Natural Language Processing',
-            'Blockchain Technology',
-            'Major Project I'
-        ],
-        '8': [
-            'Advanced Machine Learning',
-            'Software Architecture',
-            'Enterprise Systems',
-            'Research Methodology',
-            'Professional Ethics',
-            'Major Project II',
-            'Industrial Training'
-        ]
-    };
-
     const semesterSelect = document.getElementById('id_semester');
     const subjectSelect = document.getElementById('id_subject');
 
-    semesterSelect.addEventListener('change', function() {
-        const selectedSemester = this.value;
-        
-        // Clear existing options
-        subjectSelect.innerHTML = '';
-        
-        if (selectedSemester) {
-            // Enable subject dropdown
-            subjectSelect.disabled = false;
-            
-            // Add default option
-            const defaultOption = document.createElement('option');
-            defaultOption.value = '';
-            defaultOption.textContent = 'Select Subject';
-            subjectSelect.appendChild(defaultOption);
-            
-            // Add subjects for selected semester
-            const subjects = subjectsBySemester[selectedSemester] || [];
-            subjects.forEach(function(subject) {
-                const option = document.createElement('option');
-                option.value = subject;
-                option.textContent = subject;
-                subjectSelect.appendChild(option);
-            });
-        } else {
-            // Disable subject dropdown
-            subjectSelect.disabled = true;
-            const defaultOption = document.createElement('option');
-            defaultOption.value = '';
-            defaultOption.textContent = 'First select a semester';
-            subjectSelect.appendChild(defaultOption);
+    if (semesterSelect && subjectSelect) {
+        semesterSelect.addEventListener('change', function() {
+            const semesterId = this.value;
+            if (semesterId) {
+                subjectSelect.disabled = false;
+                fetch(`/students/get-subjects/?semester_id=${semesterId}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        subjectSelect.innerHTML = '<option value="">Select Subject</option>';
+                        data.subjects.forEach(subject => {
+                            const option = document.createElement('option');
+                            option.value = subject.id;
+                            option.textContent = subject.name;
+                            subjectSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error fetching subjects:', error);
+                        subjectSelect.innerHTML = '<option value="">Error loading subjects</option>';
+                        subjectSelect.disabled = true;
+                    });
+            } else {
+                subjectSelect.disabled = true;
+                subjectSelect.innerHTML = '<option value="">First select a semester</option>';
+            }
+        });
+
+        // Trigger change event on page load to populate subjects if semester is pre-selected
+        if (semesterSelect.value) {
+            semesterSelect.dispatchEvent(new Event('change'));
         }
-    });
+    }
 });
 </script>
 {% endblock %}

@@ -10,6 +10,52 @@ def student_photo_path(instance, filename):
 def result_file_path(instance, filename):
     return f'results/{instance.student.enrollment_id}/{filename}'
 
+class Department(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+class Course(models.Model):
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='courses')
+    name = models.CharField(max_length=100)
+    duration_years = models.PositiveIntegerField(default=4)
+    total_semesters = models.PositiveIntegerField(default=8)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('department', 'name')
+
+    def __str__(self):
+        return f"{self.name} - {self.department.name}"
+
+class Semester(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='semesters')
+    semester_number = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('course', 'semester_number')
+
+    def __str__(self):
+        return f"Semester {self.semester_number} - {self.course.name}"
+
+class Subject(models.Model):
+    semester = models.ForeignKey(Semester, on_delete=models.CASCADE, related_name='subjects')
+    name = models.CharField(max_length=100)
+    code = models.CharField(max_length=20, unique=True)
+    credits = models.PositiveIntegerField(default=3)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.code}: {self.name} (Semester {self.semester.semester_number})"
+
 class Student(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     enrollment_id = models.CharField(max_length=20, unique=True)
@@ -27,55 +73,59 @@ class Student(models.Model):
         return f"{self.enrollment_id} - {self.name}"
     
     def get_current_semester(self):
-        """Get the highest semester the student has results for."""
-        last_result = self.result_set.order_by('-semester').first()
-        return last_result.semester if last_result else None
+        last_result = self.results.order_by('-semester__semester_number').first()
+        return last_result.semester.semester_number if last_result else None
 
-    def get_semester_results(self, semester):
-        """Get results for a specific semester, leveraging model properties."""
+    def get_semester_results(self, semester_number):
         try:
-            semester = str(semester)  # Ensure semester is a string for consistency
-            return self.result_set.filter(semester=semester).order_by('subject')
+            semester_number = int(semester_number)
+            enrollment = self.enrollments.first()
+            if not enrollment:
+                return self.results.none()
+            semester = Semester.objects.filter(
+                course=enrollment.course,
+                semester_number=semester_number
+            ).first()
+            if not semester:
+                return self.results.none()
+            return self.results.filter(semester=semester).order_by('subject__name')
         except (TypeError, ValueError):
-            return self.result_set.none()  # Return empty queryset if semester is invalid
+            return self.results.none()
 
     def get_all_semesters_data(self):
-        """Get aggregated data for all semesters with proper percentage calculation."""
         try:
-            # Get all results with calculated percentages
-            results = self.result_set.annotate(
+            enrollment = self.enrollments.first()
+            if not enrollment:
+                return {}
+            semesters = Semester.objects.filter(course=enrollment.course).order_by('semester_number')
+            semester_ids = semesters.values_list('id', flat=True)
+            results = self.results.filter(semester__id__in=semester_ids).annotate(
                 subject_percentage=ExpressionWrapper(
                     F('marks') * 100.0 / F('total_marks'),
                     output_field=FloatField()
                 )
             )
-            
-            # Aggregate by semester
-            semesters = results.values('semester').annotate(
+            semester_results = results.values('semester__semester_number').annotate(
                 total_subjects=Count('id'),
                 total_marks=Sum('total_marks'),
                 obtained_marks=Sum('marks'),
                 percentage=Avg('subject_percentage')
-            ).order_by('semester')
-            
-            # Build dictionary with rounded percentages and consistent types
+            ).order_by('semester__semester_number')
             return {
-                str(sem['semester']): {
+                str(sem['semester__semester_number']): {
                     'subjects_count': sem['total_subjects'],
                     'total_marks': float(sem['total_marks']) if sem['total_marks'] is not None else 0.0,
                     'obtained_marks': float(sem['obtained_marks']) if sem['obtained_marks'] is not None else 0.0,
                     'percentage': round(float(sem['percentage']), 2) if sem['percentage'] is not None else 0.0,
                     'grade': self.calculate_grade_from_percentage(sem['percentage'])
                 }
-                for sem in semesters
+                for sem in semester_results
             }
         except Exception:
-            # Return empty dict if no results or error occurs
             return {}
 
     @staticmethod
     def calculate_grade_from_percentage(percentage):
-        """Calculate grade based on percentage."""
         if percentage is None:
             return 'F'
         try:
@@ -97,18 +147,22 @@ class Student(models.Model):
         except (TypeError, ValueError):
             return 'F'
 
+class Enrollment(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='enrollments')
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='enrollments')
+    course = models.ForeignKey(Course, on_delete=models.SET_NULL, null=True, blank=True)
+    enrollment_date = models.DateField()
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('student', 'department', 'course')
+
+    def __str__(self):
+        return f"{self.student.name} - {self.course.name if self.course else 'No Course'} ({self.department.name})"
+
 class Result(models.Model):
-    SEMESTER_CHOICES = [
-        ('1', '1st Semester'),
-        ('2', '2nd Semester'),
-        ('3', '3rd Semester'),
-        ('4', '4th Semester'),
-        ('5', '5th Semester'),
-        ('6', '6th Semester'),
-        ('7', '7th Semester'),
-        ('8', '8th Semester'),
-    ]
-    
     GRADE_CHOICES = [
         ('A+', 'A+ (90-100%)'),
         ('A', 'A (80-89%)'),
@@ -119,9 +173,9 @@ class Result(models.Model):
         ('F', 'F (Below 40%)'),
     ]
     
-    student = models.ForeignKey(Student, on_delete=models.CASCADE)
-    semester = models.CharField(max_length=1, choices=SEMESTER_CHOICES)
-    subject = models.CharField(max_length=100)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='results')
+    semester = models.ForeignKey(Semester, on_delete=models.CASCADE, related_name='results')
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='results')
     marks = models.DecimalField(
         max_digits=5,
         decimal_places=2,
@@ -143,16 +197,15 @@ class Result(models.Model):
     
     class Meta:
         unique_together = ('student', 'semester', 'subject')
-        ordering = ['semester', 'subject']
+        ordering = ['semester__semester_number', 'subject__name']
         verbose_name = "Academic Result"
         verbose_name_plural = "Academic Results"
     
     def __str__(self):
-        return f"{self.student.name} - {self.subject} (Sem {self.semester})"
+        return f"{self.student.name} - {self.subject.name} (Sem {self.semester.semester_number})"
     
     @property
     def percentage(self):
-        """Calculate percentage with proper error handling."""
         try:
             percentage = (float(self.marks) / float(self.total_marks)) * 100
             return round(percentage, 2)
@@ -160,38 +213,54 @@ class Result(models.Model):
             return 0.00
     
     def clean(self):
-        """Validate model data before saving."""
         try:
             if float(self.marks) > float(self.total_marks):
                 raise ValidationError('Marks obtained cannot be greater than total marks.')
-            if self.semester not in dict(self.SEMESTER_CHOICES).keys():
-                raise ValidationError('Invalid semester selected.')
+            if self.subject.semester != self.semester:
+                raise ValidationError('Subject must belong to the selected semester.')
+            enrollment = self.student.enrollments.first()
+            if enrollment and self.semester.course != enrollment.course and enrollment.course is not None:
+                raise ValidationError('Semester must belong to the student’s enrolled course.')
         except (TypeError, ValueError):
             raise ValidationError('Invalid marks or total marks value.')
 
     def save(self, *args, **kwargs):
-        """Override save to auto-calculate grade and ensure data consistency."""
-        self.full_clean()  # Run validation first
-        if not self.grade:  # Only calculate if grade is not set
+        self.full_clean()
+        if not self.grade:
             self.grade = self.calculate_grade()
         super().save(*args, **kwargs)
 
     def calculate_grade(self):
-        """Calculate grade based on percentage."""
         return Student.calculate_grade_from_percentage(self.percentage)
-    
+
 from django.db import models
 from django.contrib.auth.models import User
+from students.models import Student  # Assuming you have a Student model
 
-class Fee(models.Model):
-    student = models.ForeignKey('Student', on_delete=models.CASCADE, related_name='fees')
-    semester = models.CharField(max_length=10)
+class FeeRecord(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='fee_records')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_date = models.DateField()
     due_date = models.DateField()
-    is_paid = models.BooleanField(default=False)
-    payment_date = models.DateField(null=True, blank=True)
+    payment_method = models.CharField(max_length=50, choices=[
+        ('cash', 'Cash'),
+        ('card', 'Credit/Debit Card'),
+        ('bank', 'Bank Transfer'),
+        ('upi', 'UPI Payment'),
+        ('other', 'Other'),
+    ])
+    status = models.CharField(max_length=20, choices=[
+        ('paid', 'Paid'),
+        ('unpaid', 'Unpaid'),
+        ('partial', 'Partially Paid'),
+    ], default='unpaid')
+    description = models.TextField(blank=True, null=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_fees')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Fee for {self.student} - Semester {self.semester}"
+        return f"{self.student} - {self.amount} ({self.status})"
+
+    class Meta:
+        ordering = ['-payment_date']
