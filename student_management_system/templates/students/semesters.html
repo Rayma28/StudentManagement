@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Semesters{% endblock %}
+
+{% block content %}
+{% if user.is_staff %}
+<div class="container mx-auto p-4">
+    <section class="mb-8">
+        <h2 class="text-2xl font-semibold mb-4">Semesters</h2>
+        <div class="card p-4">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-danger{% endif %}" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+            <form method="post" class="mb-4">
+                {% csrf_token %}
+                {{ semester_form.as_p }}
+                <button type="submit" name="semester_submit" class="btn btn-primary">Add Semester</button>
+            </form>
+            <table class="table table-bordered">
+                <thead>
+                    <tr class="bg-light">
+                        <th>Semester Number</th>
+                        <th>Course</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for semester in semesters %}
+                    <tr>
+                        <td>{{ semester.semester_number }}</td>
+                        <td>{{ semester.course.name }} ({{ semester.course.department.name }})</td>
+                        <td>
+                            <form method="post" action="{% url 'delete_semester' semester.id %}" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this semester?');">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="text-center">No semesters found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% for num in page_obj.paginator.page_range %}
+                    <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </section>
+</div>
+{% else %}
+<div class="alert alert-danger" role="alert">
+    <i class="fas fa-exclamation-triangle me-2"></i>Access Denied: This page is only accessible to staff members.
+</div>
+{% endif %}
+{% endblock %}

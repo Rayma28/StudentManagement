@@ -12,7 +12,7 @@
 
 <div class="row mt-4">
     <div class="col-md-4">
-        <div class="card text-white bg-primary">
+        <div class="card" style="background: rgba(22, 160, 133, 0.1); backdrop-filter: blur(10px); border: var(--border);">
             <div class="card-body">
                 <div class="d-flex justify-content-between">
                     <div>
@@ -31,7 +31,7 @@
     </div>
     
     <div class="col-md-4">
-        <div class="card text-white bg-success">
+        <div class="card" style="background: rgba(46, 204, 113, 0.1); backdrop-filter: blur(10px); border: var(--border);">
             <div class="card-body">
                 <div class="d-flex justify-content-between">
                     <div>
@@ -50,7 +50,7 @@
     </div>
     
     <div class="col-md-4">
-        <div class="card text-white bg-info">
+        <div class="card" style="background: rgba(52, 152, 219, 0.1); backdrop-filter: blur(10px); border: var(--border);">
             <div class="card-body">
                 <div class="d-flex justify-content-between">
                     <div>
@@ -72,7 +72,7 @@
 {% if student %}
 <div class="row mt-4">
     <div class="col-md-12">
-        <div class="card">
+        <div class="card" style="background: var(--glass-bg); backdrop-filter: blur(10px); border: var(--border);">
             <div class="card-header">
                 <h5><i class="fas fa-info-circle me-2"></i>Quick Information</h5>
             </div>
@@ -113,10 +113,11 @@
     </div>
 </div>
 
-<!-- All Semesters Progress Graph -->
+{% if not user.is_staff %}
+<!-- All Semesters Progress Graph (Non-Staff Only) -->
 <div class="row mt-4">
     <div class="col-md-12">
-        <div class="card">
+        <div class="card" style="background: var(--glass-bg); backdrop-filter: blur(10px); border: var(--border);">
             <div class="card-header">
                 <h5><i class="fas fa-chart-line me-2"></i>Academic Progress</h5>
             </div>
@@ -131,17 +132,14 @@
     </div>
 </div>
 
-<style>
-    #allSemestersChart {
-        max-width: 100%;
-        width: 100%;
-    }
-</style>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 <script>
     {% if all_semester_labels %}
     const allSemestersCtx = document.getElementById('allSemestersChart').getContext('2d');
+    const isLightTheme = document.body.classList.contains('light-theme');
+    const barColor = isLightTheme ? 'rgba(52, 152, 219, 0.5)' : 'rgba(26, 60, 52, 0.5)';
+    const lineColor = isLightTheme ? 'rgb(0, 128, 0)' : 'rgb(46, 204, 113)';
+    
     new Chart(allSemestersCtx, {
         type: 'bar',
         data: {
@@ -151,20 +149,20 @@
                     type: 'bar',
                     label: 'Average Grades',
                     data: {{ all_semester_averages|safe }},
-                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
-                    borderColor: 'rgb(54, 162, 235)',
+                    backgroundColor: barColor,
+                    borderColor: isLightTheme ? 'rgb(52, 152, 219)' : 'rgb(26, 60, 52)',
                     borderWidth: 1
                 },
                 {
                     type: 'line',
                     label: 'Trend',
                     data: {{ all_semester_averages|safe }},
-                    borderColor: 'rgb(0, 128, 0)',
+                    borderColor: lineColor,
                     borderWidth: 2,
                     fill: false,
                     tension: 0.1,
-                    pointBackgroundColor: 'rgb(0, 128, 0)',
-                    pointBorderColor: 'rgb(0, 128, 0)',
+                    pointBackgroundColor: lineColor,
+                    pointBorderColor: lineColor,
                     pointRadius: 4
                 }
             ]
@@ -178,13 +176,28 @@
                     max: 100,
                     title: {
                         display: true,
-                        text: 'Grade (%)'
+                        text: 'Grade (%)',
+                        color: '#fff'
+                    },
+                    ticks: {
+                        color: '#fff'
                     }
                 },
                 x: {
                     title: {
                         display: true,
-                        text: 'Semester'
+                        text: 'Semester',
+                        color: '#fff'
+                    },
+                    ticks: {
+                        color: '#fff'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    labels: {
+                        color: '#fff'
                     }
                 }
             }
@@ -192,10 +205,11 @@
     });
     {% endif %}
 </script>
+{% endif %}
 {% else %}
 <div class="row mt-4">
     <div class="col-12">
-        <div class="alert alert-warning">
+        <div class="alert alert-warning" style="background: rgba(241, 196, 15, 0.1); backdrop-filter: blur(10px); border: var(--border);">
             <h5><i class="fas fa-exclamation-triangle me-2"></i>Profile Incomplete</h5>
             <p>Please complete your student profile to access all features.</p>
             <a href="{% url 'student_profile' %}" class="btn btn-warning">
@@ -204,13 +218,13 @@
         </div>
     </div>
 </div>
-{% endif %} 
+{% endif %}
 
 {% if user.is_staff %}
 <!-- Statistics Cards - Visible only to staff -->
 <div class="row mt-4">
     <div class="col-md-3">
-        <div class="card text-white bg-primary">
+        <div class="card" style="background: rgba(22, 160, 133, 0.1); backdrop-filter: blur(10px); border: var(--border);">
             <div class="card-body text-center">
                 <h5><i class="fas fa-users fa-2x mb-2"></i></h5>
                 <h3>{{ total_students }}</h3>
@@ -219,7 +233,7 @@
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card text-white bg-success">
+        <div class="card" style="background: rgba(46, 204, 113, 0.1); backdrop-filter: blur(10px); border: var(--border);">
             <div class="card-body text-center">
                 <h5><i class="fas fa-user-check fa-2x mb-2"></i></h5>
                 <h3>{{ active_students }}</h3>
@@ -228,7 +242,7 @@
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card text-white bg-warning">
+        <div class="card" style="background: rgba(241, 196, 15, 0.1); backdrop-filter: blur(10px); border: var(--border);">
             <div class="card-body text-center">
                 <h5><i class="fas fa-calendar fa-2x mb-2"></i></h5>
                 <h3>{{ new_this_year }}</h3>
@@ -237,7 +251,7 @@
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card text-white bg-info">
+        <div class="card" style="background: rgba(52, 152, 219, 0.1); backdrop-filter: blur(10px); border: var(--border);">
             <div class="card-body text-center">
                 <h5><i class="fas fa-chart-line fa-2x mb-2"></i></h5>
                 <h3>{{ total_results }}</h3>

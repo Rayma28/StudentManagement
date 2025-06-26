@@ -1,8 +1,10 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from .models import Student, Department, Course, Enrollment, Semester, Subject, Result
+from .models import Student, Department, Course, Enrollment, Semester, Subject, Result, FeeRecord, Attendance, Lecture
 from django.core.exceptions import ValidationError
+from django.forms import formset_factory
+from django.db.models import F, Q, Subquery, OuterRef
 
 class StudentForm(forms.ModelForm):
     class Meta:
@@ -23,43 +25,14 @@ class ResultForm(forms.ModelForm):
         model = Result
         fields = ['student', 'semester', 'subject', 'marks', 'total_marks', 'grade', 'exam_date', 'result_file']
         widgets = {
-            'student': forms.Select(attrs={
-                'class': 'form-select',
-                'placeholder': 'Select Student'
-            }),
-            'semester': forms.Select(attrs={
-                'class': 'form-select',
-                'id': 'id_semester'
-            }),
-            'subject': forms.Select(attrs={
-                'class': 'form-select',
-                'id': 'id_subject',
-                'placeholder': 'Subject will be populated based on semester'
-            }),
-            'marks': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Enter marks obtained',
-                'min': '0',
-                'max': '100'
-            }),
-            'total_marks': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Enter total marks',
-                'min': '1',
-                'max': '100'
-            }),
-            'grade': forms.Select(attrs={
-                'class': 'form-select',
-                'readonly': 'readonly'
-            }),
-            'exam_date': forms.DateInput(attrs={
-                'class': 'form-control',
-                'type': 'date'
-            }),
-            'result_file': forms.FileInput(attrs={
-                'class': 'form-control',
-                'accept': '.pdf,.jpg,.jpeg,.png'
-            })
+            'student': forms.Select(attrs={'class': 'form-select'}),
+            'semester': forms.Select(attrs={'class': 'form-select', 'id': 'id_semester'}),
+            'subject': forms.Select(attrs={'class': 'form-select', 'id': 'id_subject'}),
+            'marks': forms.NumberInput(attrs={'class': 'form-control', 'min': '0', 'max': '100'}),
+            'total_marks': forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'max': '100'}),
+            'grade': forms.Select(attrs={'class': 'form-select', 'readonly': 'readonly'}),
+            'exam_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'result_file': forms.FileInput(attrs={'class': 'form-control', 'accept': '.pdf,.jpg,.jpeg,.png'}),
         }
     
     def __init__(self, *args, student=None, **kwargs):
@@ -188,24 +161,148 @@ class EnrollmentForm(forms.ModelForm):
             'enrollment_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
-from django import forms
-from .models import FeeRecord, Student
 
 class FeeRecordForm(forms.ModelForm):
     class Meta:
         model = FeeRecord
-        fields = ['student', 'amount', 'payment_date', 'due_date', 
-                 'payment_method', 'status', 'description']
+        fields = ['student', 'amount', 'payment_date', 'due_date', 'payment_method', 'status', 'description']
         widgets = {
-            'payment_date': forms.DateInput(attrs={'type': 'date'}),
+            'payment_date': forms.DateInput(attrs={'type': 'date', 'required': False}),
             'due_date': forms.DateInput(attrs={'type': 'date'}),
+            'payment_method': forms.Select(attrs={'required': False}),
             'description': forms.Textarea(attrs={'rows': 3}),
         }
 
-    def __init__(self, *args, **kwargs):
-        user = kwargs.pop('user', None)
-        super(FeeRecordForm, self).__init__(*args, **kwargs)
-        
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
         if user and not user.is_staff:
             self.fields['student'].queryset = Student.objects.filter(user=user)
             self.fields['student'].disabled = True
+
+class AttendanceFilterForm(forms.Form):
+    course = forms.ModelChoiceField(
+        queryset=Course.objects.all(),
+        empty_label="Select Course",
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_course'})
+    )
+    lecture = forms.ModelChoiceField(
+        queryset=Lecture.objects.none(),  # Initially empty, populated dynamically
+        empty_label="Select Lecture",
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_lecture'})
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if user and user.is_staff:
+            self.fields['course'].queryset = Course.objects.filter(
+                id__in=Lecture.objects.filter(
+                    course__isnull=False
+                ).values('course').distinct()
+            )
+            if 'course' in self.data:
+                try:
+                    course_id = int(self.data.get('course'))
+                    # Get enrolled students for the course
+                    enrolled_students = Student.objects.filter(
+                        enrollments__course_id=course_id,
+                        enrollments__is_active=True
+                    ).distinct()
+                    # Get lectures where not all students have attendance recorded
+                    lectures = Lecture.objects.filter(course_id=course_id).select_related('subject')
+                    filtered_lectures = []
+                    for lecture in lectures:
+                        attendance_count = Attendance.objects.filter(
+                            subject=lecture.subject,
+                            date=lecture.lecture_date,
+                            student__in=enrolled_students
+                        ).count()
+                        if attendance_count < enrolled_students.count():
+                            filtered_lectures.append(lecture.id)
+                    self.fields['lecture'].queryset = Lecture.objects.filter(
+                        id__in=filtered_lectures
+                    ).order_by('-lecture_date')
+                except (ValueError, TypeError):
+                    pass
+        # Customize lecture field label to show name and date
+        self.fields['lecture'].label_from_instance = lambda obj: f"{obj.name} - {obj.lecture_date.strftime('%d/%m/%Y')}"
+
+class AttendanceForm(forms.ModelForm):
+    present = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input present-checkbox'})
+    )
+    absent = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input absent-checkbox'})
+    )
+
+    class Meta:
+        model = Attendance
+        fields = ['student', 'status']
+        widgets = {
+            'student': forms.HiddenInput(),
+            'status': forms.HiddenInput(),
+        }
+
+    def __init__(self, *args, subject=None, date=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.subject = subject
+        self.date = date
+        self.initial['status'] = 'A'
+        self.initial['absent'] = True
+
+    def clean(self):
+        cleaned_data = super().clean()
+        student = cleaned_data.get('student')
+        present = cleaned_data.get('present')
+        absent = cleaned_data.get('absent')
+        
+        if not student:
+            raise ValidationError('Student is required.')
+        if not self.subject:
+            raise ValidationError('Subject is required.')
+        if not self.date:
+            raise ValidationError('Date is required.')
+        
+        if present and absent:
+            raise ValidationError('A student cannot be both present and absent.')
+        if not present and not absent:
+            raise ValidationError('Please select either present or absent.')
+        
+        cleaned_data['status'] = 'P' if present else 'A'
+        return cleaned_data
+
+AttendanceFormSet = formset_factory(AttendanceForm, extra=0, can_delete=False)
+
+class LectureForm(forms.ModelForm):
+    class Meta:
+        model = Lecture
+        fields = ['lecture_id', 'name', 'course', 'semester', 'subject', 'lecture_date']
+        widgets = {
+            'lecture_date': forms.DateInput(attrs={'type': 'date'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['semester'].queryset = Semester.objects.none()
+        self.fields['subject'].queryset = Subject.objects.none()
+
+        if 'course' in self.data:
+            try:
+                course_id = int(self.data.get('course'))
+                self.fields['semester'].queryset = Semester.objects.filter(course_id=course_id).order_by('semester_number')
+            except (ValueError, TypeError):
+                pass
+        elif self.instance.pk and self.instance.course:
+            self.fields['semester'].queryset = Semester.objects.filter(course=self.instance.course).order_by('semester_number')
+
+        if 'semester' in self.data:
+            try:
+                semester_id = int(self.data.get('semester'))
+                self.fields['subject'].queryset = Subject.objects.filter(semester_id=semester_id).order_by('name')
+            except (ValueError, TypeError):
+                pass
+        elif self.instance.pk and self.instance.semester:
+            self.fields['subject'].queryset = Subject.objects.filter(semester=self.instance.semester).order_by('name')

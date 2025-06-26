@@ -1,3 +1,4 @@
+# accounts/views.py
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.forms import UserCreationForm
@@ -5,17 +6,13 @@ from django.contrib.auth.models import User
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from .models import UserProfile
-from students.models import Student
+from students.models import Student, Result, Attendance, Enrollment, Semester
 from django.templatetags.static import static
 from django.db.models import Q
 from datetime import datetime
-from students.models import Student, Result
-from django.contrib.auth.decorators import login_required
-from django.utils import timezone
 import json
 from django.core.mail import send_mail
 from students.forms import RegistrationForm
-
 
 def register_view(request):
     if request.method == 'POST':
@@ -31,18 +28,13 @@ def register_view(request):
     return render(request, 'accounts/register.html', {'form': form})
 
 def login_view(request):
-    # Define default images for different user types
     default_images = {
         'default': static('images/default_user.png'),
         'student': static('images/student.png'),
         'teacher': static('images/teacher.png'),
         'admin': static('images/admin.png')
     }
-    
-    # Initialize with default image
     login_image = default_images['default']
-    
-    # Check if user is already authenticated (might happen if they revisit login page)
     if request.user.is_authenticated:
         try:
             profile = request.user.userprofile
@@ -58,7 +50,6 @@ def login_view(request):
     if request.method == 'POST':
         username = request.POST['username']
         password = request.POST['password']
-        
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
@@ -73,30 +64,34 @@ def logout_view(request):
     messages.success(request, 'You have been logged out successfully')
     return redirect('login')
 
-# Grade to numeric value conversion (using midpoint of typical grade ranges)
 GRADE_MAPPING = {
-    'A+': 95,  # Outstanding, midpoint of 90-100
-    'A': 85,   # Excellent, midpoint of 80-89
-    'B+': 75,  # Very Good, midpoint of 70-79
-    'B': 65,   # Good, midpoint of 60-69
-    'C+': 55,  # Average, midpoint of 50-59
-    'C': 45,   # Below Average, midpoint of 40-49
-    'F': 20,   # Fail, midpoint of 0-40
+    'A+': 95,
+    'A': 85,
+    'B+': 75,
+    'B': 65,
+    'C+': 55,
+    'C': 45,
+    'F': 20,
 }
 
 def convert_grade_to_numeric(grade):
-    """Convert a letter grade to a numeric value for charting."""
-    return GRADE_MAPPING.get(grade, 0.0)  # Default to 0.0 if grade not found
+    return GRADE_MAPPING.get(grade.strip(), 0.0)
 
 @login_required
 def dashboard_view(request):
-    # Get student profile if exists
+    student = None
+    current_semester = None
+    all_semester_labels = []
+    all_semester_averages = []
+    
     try:
         student = Student.objects.get(user=request.user)
+        enrollment = student.enrollments.filter(is_active=True).first()
+        if enrollment and enrollment.course:
+            current_semester = Semester.objects.filter(course=enrollment.course).order_by('-semester_number').first()
     except Student.DoesNotExist:
-        student = None
+        messages.error(request, 'No student profile found. Please complete your profile.')
     
-    # Get statistics data (for staff only)
     total_students = 0
     active_students = 0
     new_this_year = 0
@@ -109,56 +104,45 @@ def dashboard_view(request):
         new_this_year = students.filter(created_at__year=current_year).count()
         total_results = Result.objects.count()
     
-    # Initialize variables for student progress graphs
-    all_semester_labels = []
-    all_semester_averages = []
-    
-    # Get fee-related data for all users
     fee_data = {}
-    if student:
-        # All Semesters Progress: Get average grade per semester
+    if student and not request.user.is_staff:
         all_semesters = Result.objects.filter(student=student).values('semester').distinct().order_by('semester')
         for semester in all_semesters:
-            semester_name = semester['semester']
-            semester_results = Result.objects.filter(student=student, semester=semester_name)
+            semester_id = semester['semester']
+            semester_obj = Semester.objects.get(id=semester_id)
+            semester_results = Result.objects.filter(student=student, semester=semester_id)
             if semester_results.exists():
                 avg_grade = sum(convert_grade_to_numeric(r.grade) for r in semester_results) / semester_results.count()
-                all_semester_labels.append(semester_name)
+                all_semester_labels.append(f"Semester {semester_obj.semester_number}")
                 all_semester_averages.append(round(avg_grade, 2))
         
-        # Fee data: Using the Fee model with amount, is_paid, and due_date
         try:
-            latest_fee = student.fees.order_by('-due_date').first()  # Using related_name='fees'
+            latest_fee = student.fee_records.order_by('-due_date').first()
             if latest_fee:
                 fee_data = {
                     'amount': latest_fee.amount,
-                    'is_paid': latest_fee.is_paid,
-                    'status': 'Paid' if latest_fee.is_paid else 'Pending',
+                    'status': latest_fee.status,
                     'due_date': latest_fee.due_date.strftime('%Y-%m-%d') if latest_fee.due_date else 'N/A',
                     'payment_date': latest_fee.payment_date.strftime('%Y-%m-%d') if latest_fee.payment_date else 'N/A',
-                    'semester': latest_fee.semester,
+                    'semester': latest_fee.student.get_current_semester() or 'N/A',
                 }
             else:
                 fee_data = {
                     'amount': 0,
-                    'is_paid': False,
                     'status': 'No fees recorded',
                     'due_date': 'N/A',
                     'payment_date': 'N/A',
                     'semester': 'N/A',
                 }
         except AttributeError:
-            # Handle case where Fee model or relationship is misconfigured
             fee_data = {
                 'amount': 0,
-                'is_paid': False,
                 'status': 'Fee data unavailable',
                 'due_date': 'N/A',
                 'payment_date': 'N/A',
                 'semester': 'N/A',
             }
     
-    # Context for template
     context = {
         'student': student,
         'total_students': total_students,
@@ -168,28 +152,22 @@ def dashboard_view(request):
         'all_semester_labels': json.dumps(all_semester_labels),
         'all_semester_averages': json.dumps(all_semester_averages),
         'fee_data': fee_data,
+        'current_semester': current_semester,
     }
     return render(request, 'accounts/dashboard.html', context)
 
 def forgot_password(request):
     if request.method == 'POST':
         email = request.POST.get('email')
-        
-        # Check if the email exists in your database (example)
-        # You might need to adjust this based on your User model
-        from django.contrib.auth.models import User
         if User.objects.filter(email=email).exists():
-            # Send email
             subject = "Password Reset Link"
             message = "Click this link to reset your password: http://your-website.com/reset-password/"
             from_email = "youruniversity.sms@gmail.com"
             recipient_list = [email]
-            
             send_mail(subject, message, from_email, recipient_list)
-            
             messages.success(request, "Password reset link sent to your email!")
-            return redirect('login')  # Redirect to login page
+            return redirect('login')
         else:
             messages.error(request, "Email not found!")
     
-    return render(request, 'forgot_password.html')
+    return render(request, 'accounts/forgot_password.html')

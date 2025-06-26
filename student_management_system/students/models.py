@@ -233,14 +233,10 @@ class Result(models.Model):
     def calculate_grade(self):
         return Student.calculate_grade_from_percentage(self.percentage)
 
-from django.db import models
-from django.contrib.auth.models import User
-from students.models import Student  # Assuming you have a Student model
-
 class FeeRecord(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='fee_records')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    payment_date = models.DateField()
+    payment_date = models.DateField(null=True, blank=True)
     due_date = models.DateField()
     payment_method = models.CharField(max_length=50, choices=[
         ('cash', 'Cash'),
@@ -248,7 +244,7 @@ class FeeRecord(models.Model):
         ('bank', 'Bank Transfer'),
         ('upi', 'UPI Payment'),
         ('other', 'Other'),
-    ])
+    ], blank=True, default='')
     status = models.CharField(max_length=20, choices=[
         ('paid', 'Paid'),
         ('unpaid', 'Unpaid'),
@@ -264,3 +260,72 @@ class FeeRecord(models.Model):
 
     class Meta:
         ordering = ['-payment_date']
+
+class Attendance(models.Model):
+    STATUS_CHOICES = [
+        ('P', 'Present'),
+        ('A', 'Absent'),
+    ]
+    
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='attendances')
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='attendances')
+    date = models.DateField()
+    status = models.CharField(max_length=1, choices=STATUS_CHOICES, default='A')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('student', 'subject', 'date')
+        ordering = ['-date', 'subject__name']
+        verbose_name = "Attendance Record"
+        verbose_name_plural = "Attendance Records"
+
+    def __str__(self):
+        return f"{self.student.name} - {self.subject.name} ({self.date}) - {self.get_status_display()}"
+
+    def get_attendance_percentage(self):
+        """Calculate attendance percentage for this student in this subject."""
+        total_classes = Attendance.objects.filter(
+            student=self.student,
+            subject=self.subject
+        ).count()
+        present_classes = Attendance.objects.filter(
+            student=self.student,
+            subject=self.subject,
+            status='P'
+        ).count()
+        if total_classes == 0:
+            return 0.0
+        return round((present_classes / total_classes) * 100, 2)
+    
+class Lecture(models.Model):
+    lecture_id = models.CharField(max_length=20, unique=True)
+    name = models.CharField(max_length=200)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='lectures')
+    semester = models.ForeignKey(Semester, on_delete=models.CASCADE, related_name='lectures')
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='lectures')
+    lecture_date = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('course', 'semester', 'subject', 'lecture_id')
+        ordering = ['lecture_date', 'subject__name']
+        verbose_name = "Lecture"
+        verbose_name_plural = "Lectures"
+
+    def __str__(self):
+        return f"{self.lecture_id}: {self.name} ({self.subject.name}, Sem {self.semester.semester_number})"
+
+    def clean(self):
+        try:
+            if self.semester.course != self.course:
+                raise ValidationError('Semester must belong to the selected course.')
+            if self.subject.semester != self.semester:
+                raise ValidationError('Subject must belong to the selected semester.')
+        except (TypeError, ValueError):
+            raise ValidationError('Invalid course, semester, or subject selection.')
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)

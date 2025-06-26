@@ -92,8 +92,8 @@
                                     <a href="{% url 'student_detail' student.enrollment_id %}" class="btn btn-sm btn-outline-primary">
                                         <i class="fas fa-eye me-1"></i>View
                                     </a>
-                                    <a href="{% url 'upload_result' %}" class="btn btn-sm btn-outline-success ms-1">
-                                        <i class="fas fa-plus me-1"></i>Add Result
+                                    <a href="{% url 'student_attendance' student.enrollment_id %}" class="btn btn-sm btn-outline-success ms-1">
+                                        <i class="fas fa-clipboard-check me-1"></i>Attendance
                                     </a>
                                 </td>
                             </tr>
@@ -108,12 +108,12 @@
                         {% if students.has_previous %}
                             <li class="page-item">
                                 <a class="page-link" href="?page=1{% if name_filter %}&name={{ name_filter }}{% endif %}{% if enrollment_filter %}&enrollment_id={{ enrollment_filter }}{% endif %}{% if email_filter %}&email={{ email_filter }}{% endif %}" aria-label="First">
-                                    <span aria-hidden="true">&laquo;&laquo;</span>
+                                    <span aria-hidden="true">««</span>
                                 </a>
                             </li>
                             <li class="page-item">
                                 <a class="page-link" href="?page={{ students.previous_page_number }}{% if name_filter %}&name={{ name_filter }}{% endif %}{% if enrollment_filter %}&enrollment_id={{ enrollment_filter }}{% endif %}{% if email_filter %}&email={{ email_filter }}{% endif %}" aria-label="Previous">
-                                    <span aria-hidden="true">&laquo;</span>
+                                    <span aria-hidden="true">«</span>
                                 </a>
                             </li>
                         {% endif %}
@@ -129,12 +129,12 @@
                         {% if students.has_next %}
                             <li class="page-item">
                                 <a class="page-link" href="?page={{ students.next_page_number }}{% if name_filter %}&name={{ name_filter }}{% endif %}{% if enrollment_filter %}&enrollment_id={{ enrollment_filter }}{% endif %}{% if email_filter %}&email={{ email_filter }}{% endif %}" aria-label="Next">
-                                    <span aria-hidden="true">&raquo;</span>
+                                    <span aria-hidden="true">»</span>
                                 </a>
                             </li>
                             <li class="page-item">
                                 <a class="page-link" href="?page={{ students.paginator.num_pages }}{% if name_filter %}&name={{ name_filter }}{% endif %}{% if enrollment_filter %}&enrollment_id={{ enrollment_filter }}{% endif %}{% if email_filter %}&email={{ email_filter }}{% endif %}" aria-label="Last">
-                                    <span aria-hidden="true">&raquo;&raquo;</span>
+                                    <span aria-hidden="true">»»</span>
                                 </a>
                             </li>
                         {% endif %}

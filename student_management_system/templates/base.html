@@ -1,4 +1,3 @@
-<!-- base.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,101 +6,350 @@
     <title>{% block title %}Student Management System{% endblock %}</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Montserrat:wght@500;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary-color: #16a085;
+            --secondary-color: #e74c3c;
+            --accent-color: #f1c40f;
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            --border: 1px solid rgba(255, 255, 255, 0.18);
+            --light-gradient: linear-gradient(135deg, #2ecc71, #3498db, #e74c3c);
+            --dark-gradient: linear-gradient(135deg, #1a3c34, #2c3e50, #4a1d1d);
+        }
+
         body {
             margin: 0;
             padding: 0;
-            background: #f0f4f8;
+            background: var(--dark-gradient);
             position: relative;
             overflow-x: hidden;
+            perspective: 1000px;
+            min-height: 100vh;
+            font-family: 'Roboto', sans-serif;
+            color: #fff;
+            scroll-behavior: smooth;
+            transition: background 0.5s ease;
         }
 
-        /* Particle background container */
-        #particle-canvas {
+        body.light-theme {
+            background: var(--light-gradient);
+        }
+
+        h1, h2, h3, h4, h5, h6, .navbar-brand {
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        /* Scroll Progress Bar */
+        #scroll-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 4px;
+            background: var(--accent-color);
+            z-index: 10000;
+            transition: width 0.3s ease;
+        }
+
+        /* 3D Particle Background */
+        #particle-bg {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: -1;
-            background: linear-gradient(135deg, #74ebd5, #acb6e5);
-            opacity: 0.8;
+            z-index: -2;
+            background: transparent;
         }
 
-        /* Ensure content is readable */
-        .navbar-brand {
-            font-weight: bold;
+        /* Academic Icons in Header */
+        .academic-icons {
+            display: flex;
+            align-items: center;
+            margin-left: 15px;
+            z-index: 1100;
         }
 
+        .academic-icon {
+            font-size: 18px;
+            margin: 0 8px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+            animation: floatHeader 5s ease-in-out infinite;
+        }
+
+        .academic-icon:nth-child(1) { animation-delay: 0s; color: #2ecc71; }
+        .academic-icon:nth-child(2) { animation-delay: 0.5s; color: #e74c3c; }
+        .academic-icon:nth-child(3) { animation-delay: 1s; color: #f1c40f; }
+        .academic-icon:nth-child(4) { animation-delay: 1.5s; color: #3498db; }
+        .academic-icon:nth-child(5) { animation-delay: 2s; color: #9b59b6; }
+        .academic-icon:nth-child(6) { animation-delay: 2.5s; color: #e74c3c; }
+        .academic-icon:nth-child(7) { animation-delay: 3s; color: #2ecc71; }
+        .academic-icon:nth-child(8) { animation-delay: 3.5s; color: #f1c40f; }
+
+        @keyframes floatHeader {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+            100% { transform: translateY(0); }
+        }
+
+        .academic-icon::before {
+            content: attr(data-icon);
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            display: block;
+        }
+
+        /* Glassmorphism Card */
         .card {
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(33, 40, 50, 0.15);
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 10px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: var(--border);
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+            color: #fff;
         }
 
+        /* Sidebar with Slide-in Animation */
         .sidebar {
             position: sticky;
             top: 56px;
             height: calc(100vh - 56px);
-            background-color: rgba(52, 58, 64, 0.9);
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-right: var(--border);
             overflow-y: auto;
+            transform: translateX(-100%);
+            animation: slideIn 0.5s forwards;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+            z-index: 900;
+        }
+
+        @keyframes slideIn {
+            to { transform: translateX(0); }
         }
 
         .sidebar .nav-link {
             color: #fff;
+            padding: 15px 20px;
+            margin: 5px 10px;
+            border-radius: 8px;
+            position: relative;
+            font-family: 'Roboto', sans-serif;
+            font-weight: 500;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
         }
 
         .sidebar .nav-link:hover {
-            background-color: #495057;
+            background: rgba(52, 152, 219, 0.3);
+            color: #fff;
         }
 
+        .sidebar .nav-link i {
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar .nav-link:hover i {
+            transform: rotate(360deg);
+        }
+
+        .sidebar .nav-link::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            width: 4px;
+            height: 0;
+            background: var(--secondary-color);
+            transition: height 0.3s ease;
+            transform: translateY(-50%);
+        }
+
+        .sidebar .nav-link:hover::before {
+            height: 60%;
+        }
+
+        /* Tooltip Styling */
+        .sidebar .nav-link, .navbar-brand, .nav-link {
+            position: relative;
+        }
+
+        .sidebar .nav-link::after, .navbar-brand::after, .nav-link::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            top: 50%;
+            left: 100%;
+            transform: translateY(-50%);
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            z-index: 1100;
+        }
+
+        .sidebar .nav-link:hover::after, .navbar-brand:hover::after, .nav-link:hover::after {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Main Content */
         .main-content {
-            padding: 20px;
+            padding: 30px;
             min-height: calc(100vh - 56px);
-            background: rgba(255, 255, 255, 0.2);
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            transform: translateZ(0);
+            color: #fff;
+            z-index: 800;
         }
 
-        .container-fluid {
-            padding-left: 0;
-            padding-right: 0;
-        }
-
-        .row {
-            margin-left: 0;
-            margin-right: 0;
-        }
-
+        /* Navbar with Glassmorphism */
         .navbar-custom {
-            background-color: #16a085;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-bottom: var(--border);
+            box-shadow: var(--shadow);
+            z-index: 950;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            color: #fff !important;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        .nav-link {
+            color: #fff !important;
+            font-family: 'Roboto', sans-serif;
+            font-weight: 500;
+        }
+
+        /* Theme Toggle Button */
+        #theme-toggle {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: var(--border);
+            border-radius: 50%;
+            padding: 10px;
+            cursor: pointer;
+            z-index: 2000;
+            margin-right: 10px; /* Space to the right of the theme toggle */
+        }
+
+        #theme-toggle i {
+            color: #fff;
+            font-size: 20px;
+        }
+
+        /* Navbar Layout for User and Theme Toggle */
+        .navbar-nav-container {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+        }
+
+        /* Dropdown Animation */
+        .dropdown-menu {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: var(--border);
+            animation: dropdownShow 0.3s ease;
+            z-index: 1100;
+        }
+
+        .dropdown-menu .dropdown-item {
+            color: #fff;
+            font-family: 'Roboto', sans-serif;
+            font-weight: 400;
+        }
+
+        .dropdown-menu .dropdown-item:hover {
+            background: rgba(52, 152, 219, 0.3);
+            color: #fff;
+        }
+
+        @keyframes dropdownShow {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Alert Animation */
+        .alert {
+            animation: slideInRight 0.5s ease;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: var(--border);
+            color: #fff;
+            font-family: 'Roboto', sans-serif;
+            font-weight: 400;
+        }
+
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(50px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .btn-close {
+            filter: invert(1);
         }
     </style>
 </head>
 <body>
-    <!-- Particle Background -->
-    <canvas id="particle-canvas"></canvas>
+    <!-- Scroll Progress Bar -->
+    <div id="scroll-progress"></div>
+
+    <!-- 3D Particle Background -->
+    <canvas id="particle-bg"></canvas>
 
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark navbar-custom sticky-top">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{% url 'dashboard' %}">
-                <i class="fas fa-graduation-cap me-2"></i>Student Management System
-            </a>
+            <div class="d-flex align-items-center">
+                <a class="navbar-brand" href="{% url 'dashboard' %}" data-tooltip="Go to Dashboard">
+                    <i class="fas fa-graduation-cap me-2"></i>Student Management System
+                </a>
+                <!-- Academic Icons -->
+                <div class="academic-icons">
+                    <div class="academic-icon" data-icon="📚"></div>
+                    <div class="academic-icon" data-icon="🎓"></div>
+                    <div class="academic-icon" data-icon="✍️"></div>
+                    <div class="academic-icon" data-icon="📐"></div>
+                    <div class="academic-icon" data-icon="📖"></div>
+                    <div class="academic-icon" data-icon="🎓"></div>
+                    <div class="academic-icon" data-icon="✏️"></div>
+                    <div class="academic-icon" data-icon="📏"></div>
+                </div>
+            </div>
             
             {% if user.is_authenticated %}
-            <div class="navbar-nav ms-auto">
-                <div class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-user me-1"></i>{{ user.username }}
-                    </a>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="{% url 'student_profile' %}">
-                            <i class="fas fa-user-edit me-2"></i>Profile
-                        </a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="{% url 'logout' %}">
-                            <i class="fas fa-sign-out-alt me-2"></i>Logout
-                        </a></li>
-                    </ul>
+            <div class="navbar-nav-container ms-auto">
+                <!-- Theme Toggle Button -->
+                <button id="theme-toggle">
+                    <i class="fas fa-sun"></i>
+                </button>
+                <div class="navbar-nav">
+                    <div class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" data-tooltip="User Menu">
+                            <i class="fas fa-user me-1"></i>{{ user.username }}
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'student_profile' %}" data-tooltip="View Profile">
+                                <i class="fas fa-user-edit me-2"></i>Profile
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'logout' %}" data-tooltip="Sign Out">
+                                <i class="fas fa-sign-out-alt me-2"></i>Logout
+                            </a></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
             {% endif %}
@@ -115,29 +363,45 @@
             <div class="col-md-2 p-0">
                 <div class="sidebar">
                     <div class="nav flex-column">
-                        <a class="nav-link" href="{% url 'dashboard' %}">
+                        <a class="nav-link" href="{% url 'dashboard' %}" data-tooltip="Dashboard Overview">
                             <i class="fas fa-tachometer-alt me-2"></i>Dashboard
                         </a>
-                        <a class="nav-link" href="{% url 'student_profile' %}">
+                        <a class="nav-link" href="{% url 'student_profile' %}" data-tooltip="Your Profile">
                             <i class="fas fa-user me-2"></i>My Profile
                         </a>
-                        <a class="nav-link" href="{% url 'student_results' %}">
+                        <a class="nav-link" href="{% url 'student_results' %}" data-tooltip="View Results">
                             <i class="fas fa-chart-line me-2"></i>My Results
                         </a>
-                        <a class="nav-link" href="{% url 'my_fees' %}">
+                        <a class="nav-link" href="{% url 'my_fees' %}" data-tooltip="Fee Details">
                             <i class="fas fa-wallet me-2"></i>Fees
                         </a>
+                        <a class="nav-link" href="{% url 'attendance' %}" data-tooltip="Attendance Records">
+                            <i class="fas fa-clipboard-check me-2"></i>Attendance
+                        </a>
                         {% if user.is_staff %}
-                        <hr class="text-white">
-                        <h6 class="text-white-50 px-3">Admin Panel</h6>
-                        <a class="nav-link" href="{% url 'all_students' %}">
+                        <a class="nav-link" href="{% url 'all_students' %}" data-tooltip="Manage Students">
                             <i class="fas fa-users me-2"></i>All Students
                         </a>
-                        <a class="nav-link" href="{% url 'upload_result' %}">
-                            <i class="fas fa-upload me-2"></i>Upload Results
+                        <a class="nav-link" href="{% url 'upload_result' %}" data-tooltip="Upload Results">
+                            <i class="fas fa-chalkboard-teacher me-2"></i>Upload Results
                         </a>
-                        <a class="nav-link" href="{% url 'department' %}">
-                            <i class="fas fa-building me-2"></i>Manage Departments
+                        <a class="nav-link" href="{% url 'lecture' %}" data-tooltip="Lectures">
+                            <i class="fas fa-upload me-2"></i>Lectures
+                        </a>
+                        <a class="nav-link" href="{% url 'departments' %}" data-tooltip="Manage Departments">
+                            <i class="fas fa-building me-2"></i>Departments
+                        </a>
+                        <a class="nav-link" href="{% url 'courses' %}" data-tooltip="Manage Courses">
+                            <i class="fas fa-book me-2"></i>Courses
+                        </a>
+                        <a class="nav-link" href="{% url 'semesters' %}" data-tooltip="Manage Semesters">
+                            <i class="fas fa-calendar-alt me-2"></i>Semesters
+                        </a>
+                        <a class="nav-link" href="{% url 'subjects' %}" data-tooltip="Manage Subjects">
+                            <i class="fas fa-book-open me-2"></i>Subjects
+                        </a>
+                        <a class="nav-link" href="{% url 'enrollments' %}" data-tooltip="Manage Enrollments">
+                            <i class="fas fa-user-plus me-2"></i>Enrollments
                         </a>
                         {% endif %}
                     </div>
@@ -148,7 +412,7 @@
             <div class="col-md-10">
                 <div class="main-content">
             {% else %}
-            <div class="col-12">
+            <divwon" class="col-12">
                 <div class="main-content">
             {% endif %}
                     <!-- Messages -->
@@ -170,11 +434,186 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
-    <!-- Particle.js (assuming you have a script for the particle background) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script>
-        // Placeholder for particle background script
-        // If using particles.js, include: <script src="path/to/particles.min.js"></script>
-        // and initialize it for #particle-canvas
+        // Theme Toggle with localStorage
+        const themeToggle = document.getElementById('theme-toggle');
+        
+        // Check for saved theme preference on load
+        window.addEventListener('load', () => {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') {
+                document.body.classList.add('light-theme');
+                themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+            } else {
+                document.body.classList.remove('light-theme');
+                themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            }
+        });
+
+        // Toggle theme and save preference
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('light-theme');
+            const isLightTheme = document.body.classList.contains('light-theme');
+            themeToggle.innerHTML = isLightTheme
+                ? '<i class="fas fa-moon"></i>'
+                : '<i class="fas fa-sun"></i>';
+            localStorage.setItem('theme', isLightTheme ? 'light' : 'dark');
+        });
+
+        // Scroll Progress
+        window.addEventListener('scroll', () => {
+            const scrollProgress = document.getElementById('scroll-progress');
+            const scrollTop = window.scrollY;
+            const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const progress = (scrollTop / scrollHeight) * 100;
+            scrollProgress.style.width = `${progress}%`;
+        });
+
+        // Enhanced 3D Particle System with Glow and Rotation
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('particle-bg'), alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        const particles = new THREE.BufferGeometry();
+        const particleCount = 1500; // Increased for more density
+        const positions = new Float32Array(particleCount * 3);
+        const velocities = new Float32Array(particleCount * 3);
+        const colors = new Float32Array(particleCount * 3);
+        const scales = new Float32Array(particleCount);
+        const rotations = new Float32Array(particleCount); // New for particle rotation
+        const mouse = new THREE.Vector2(0, 0);
+
+        const colorPalette = [
+            [0.18, 0.80, 0.44], // #2ecc71
+            [0.91, 0.30, 0.24], // #e74c3c
+            [0.95, 0.77, 0.06], // #f1c40f
+            [0.20, 0.60, 0.86], // #3498db
+            [0.61, 0.35, 0.71]  // #9b59b6
+        ];
+
+        for (let i = 0; i < particleCount * 3; i += 3) {
+            positions[i] = (Math.random() - 0.5) * 200; // Wider spread
+            positions[i + 1] = (Math.random() - 0.5) * 200;
+            positions[i + 2] = (Math.random() - 0.5) * 100; // Deeper z-axis
+            velocities[i] = (Math.random() - 0.5) * 0.05;
+            velocities[i + 1] = (Math.random() - 0.5) * 0.05;
+            velocities[i + 2] = (Math.random() - 0.5) * 0.05;
+            const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+            colors[i] = color[0];
+            colors[i + 1] = color[1];
+            colors[i + 2] = color[2];
+            scales[i / 3] = 0.5 + Math.random() * 0.5; // Larger base size
+            rotations[i / 3] = Math.random() * Math.PI * 2; // Initial rotation
+        }
+
+        particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        particles.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        particles.setAttribute('scale', new THREE.Float32BufferAttribute(scales, 1));
+        particles.setAttribute('rotation', new THREE.Float32BufferAttribute(rotations, 1));
+
+        // Custom shader for glowing particles
+        const vertexShader = `
+            attribute float scale;
+            attribute float rotation;
+            varying vec3 vColor;
+            void main() {
+                vColor = color;
+                vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                gl_PointSize = scale * (300.0 / -mvPosition.z); // Size based on distance
+                gl_Position = projectionMatrix * mvPosition;
+            }
+        `;
+
+        const fragmentShader = `
+            varying vec3 vColor;
+            void main() {
+                float dist = length(gl_PointCoord - vec2(0.5)); // Distance from center
+                if (dist > 0.5) discard; // Circular shape
+                float intensity = 1.0 - dist / 0.5; // Glow effect
+                gl_FragColor = vec4(vColor, intensity * 0.8); // Fade to transparent at edges
+            }
+        `;
+
+        const material = new THREE.ShaderMaterial({
+            vertexShader: vertexShader,
+            fragmentShader: fragmentShader,
+            transparent: true,
+            vertexColors: true,
+            blending: THREE.AdditiveBlending
+        });
+
+        const particleSystem = new THREE.Points(particles, material);
+        scene.add(particleSystem);
+
+        camera.position.z = 150; // Adjusted for wider spread
+
+        // Mouse Interaction
+        window.addEventListener('mousemove', (event) => {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        let time = 0;
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.02; // Slower for smoother animation
+            for (let i = 0; i < particleCount * 3; i += 3) {
+                positions[i] += velocities[i];
+                positions[i + 1] += velocities[i + 1];
+                positions[i + 2] += velocities[i + 2];
+
+                // Mouse attraction
+                const dx = positions[i] - (mouse.x * 100);
+                const dy = positions[i + 1] - (mouse.y * 100);
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < 30) {
+                    velocities[i] -= dx * 0.003;
+                    velocities[i + 1] -= dy * 0.003;
+                }
+
+                // Clustering effect
+                for (let j = i + 3; j < particleCount * 3; j += 3) {
+                    const dx2 = positions[i] - positions[j];
+                    const dy2 = positions[i + 1] - positions[j + 1];
+                    const dist2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+                    if (dist2 < 15) {
+                        velocities[i] += dx2 * 0.002;
+                        velocities[i + 1] += dy2 * 0.002;
+                        velocities[j] -= dx2 * 0.002;
+                        velocities[j + 1] -= dy2 * 0.002;
+                    }
+                }
+
+                // Pulsing, depth effect, and rotation
+                scales[i / 3] = 0.5 + 0.3 * Math.sin(time + i / 3); // Dynamic sizing
+                rotations[i / 3] += 0.02; // Continuous rotation
+                positions[i + 2] += 0.1 * Math.sin(time + i / 3); // Enhanced depth movement
+
+                // Boundary checks
+                if (Math.abs(positions[i]) > 100) velocities[i] *= -1;
+                if (Math.abs(positions[i + 1]) > 100) velocities[i + 1] *= -1;
+                if (Math.abs(positions[i + 2]) > 100) velocities[i + 2] *= -1;
+            }
+            particles.attributes.position.needsUpdate = true;
+            particles.attributes.scale.needsUpdate = true;
+            particles.attributes.rotation.needsUpdate = true;
+
+            // Rotate the entire particle system for a 3D effect
+            particleSystem.rotation.y += 0.002;
+            particleSystem.rotation.x += 0.001;
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        });
     </script>
 </body>
 </html>

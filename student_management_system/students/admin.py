@@ -1,5 +1,7 @@
 from django.contrib import admin
-from .models import Department, Course, Semester, Subject, Student, Enrollment, FeeRecord, Result
+from .models import Department, Course, Semester, Subject, Student, Enrollment, FeeRecord, Result, Attendance
+
+admin.site.register(Attendance)
 
 @admin.register(Department)
 class DepartmentAdmin(admin.ModelAdmin):

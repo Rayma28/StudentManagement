@@ -1,0 +1,582 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Attendance - Student Management System{% endblock %}
+{% block content %}
+{% if user.is_authenticated %}
+    <div class="container mx-auto p-4">
+        <h2 class="text-3xl font-bold mb-6"><i class="fas fa-clipboard-check me-2"></i>Attendance</h2>
+        {% if query_error %}
+            <div class="alert alert-danger" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>Error loading attendance records: {{ query_error }}. Please contact support.
+            </div>
+        {% endif %}
+        {% if user.is_staff %}
+            <!-- Staff View: Record Attendance -->
+            <section class="my-5">
+                <div class="card p-5 shadow-sm">
+                    <div class="card-content p-4">
+                        <h3 class="text-xl font-semibold mb-4">Mark Attendance</h3>
+                        <div id="form-error" class="alert alert-danger d-none" role="alert"></div>
+                        <form method="post" id="attendance-form">
+                            {% csrf_token %}
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ filter_form.course.id_for_label }}" class="form-label">
+                                        <i class="fas fa-book-open me-1"></i>Course
+                                    </label>
+                                    {{ filter_form.course|add_class:"form-select" }}
+                                    {% if filter_form.course.errors %}
+                                        <div class="text-danger">{{ filter_form.course.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="{{ filter_form.lecture.id_for_label }}" class="form-label">
+                                        <i class="fas fa-chalkboard-teacher me-1"></i>Lecture
+                                    </label>
+                                    {{ filter_form.lecture|add_class:"form-select" }}
+                                    {% if filter_form.lecture.errors %}
+                                        <div class="text-danger">{{ filter_form.lecture.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover align-middle" id="student-table">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th class="col-3 px-3">Enrollment No.</th>
+                                            <th class="col-4 px-3">Student Name</th>
+                                            <th class="col-2 px-3">Present</th>
+                                            <th class="col-2 px-3">Absent</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="student-table-body">
+                                        {% if formset %}
+                                            {{ formset.management_form }}
+                                            {% if formset.non_form_errors %}
+                                                <div class="text-danger mb-3">{{ formset.non_form_errors }}</div>
+                                            {% endif %}
+                                            {% for form in formset %}
+                                                <tr>
+                                                    <td class="px-3">{{ form.student.initial.enrollment_id }}</td>
+                                                    <td class="px-3">{{ form.student.initial.name }}</td>
+                                                    <td class="px-3">
+                                                        <div class="form-check form-check-inline d-flex flex-column align-items-center">
+                                                            <label class="form-check-label mb-1" for="{{ form.present.id_for_label }}">Present</label>
+                                                            {{ form.present|add_class:"form-check-input present-checkbox" }}
+                                                            {% if form.present.errors %}
+                                                                <div class="text-danger mt-1">{{ form.present.errors }}</div>
+                                                            {% endif %}
+                                                            {{ form.student }}
+                                                            {{ form.status }}
+                                                        </div>
+                                                    </td>
+                                                    <td class="px-3">
+                                                        <div class="form-check form-check-inline d-flex flex-column align-items-center">
+                                                            <label class="form-check-label mb-1" for="{{ form.absent.id_for_label }}">Absent</label>
+                                                            {{ form.absent|add_class:"form-check-input absent-checkbox" }}
+                                                            {% if form.absent.errors %}
+                                                                <div class="text-danger mt-1">{{ form.absent.errors }}</div>
+                                                            {% endif %}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            {% empty %}
+                                                <tr>
+                                                    <td colspan="4" class="text-center">No students enrolled.</td>
+                                                </tr>
+                                            {% endfor %}
+                                        {% else %}
+                                            <tr>
+                                                <td colspan="4" class="text-center">Select a course and lecture to load students.</td>
+                                            </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
+                                <button type="button" class="btn btn-info" id="all-present-button" disabled>
+                                    <i class="fas fa-check-circle me-2"></i>All Present
+                                </button>
+                                <button type="submit" class="btn btn-success" id="submit-attendance" disabled>
+                                    <i class="fas fa-save me-2"></i>Submit Attendance
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+        {% endif %}
+        <!-- Staff and Student View: Attendance Records by Semester -->
+        <section class="my-5">
+            <div class="card p-5 shadow-sm">
+                <div class="card-content p-4">
+                    <h3 class="text-xl font-semibold mb-4">{% if user.is_staff %}Attendance Records by Semester{% else %}My Attendance Records{% endif %}</h3>
+                    {% if user.is_staff %}
+                        <form method="get" class="mb-4">
+                            <div class="row">
+                                <div class="col-md-3 mb-3">
+                                    <div class="input-group">
+                                        <input type="text" name="student_filter" class="form-control" placeholder="Search by student name" value="{{ student_filter }}">
+                                        <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="input-group">
+                                        <input type="text" name="enrollment_filter" class="form-control" placeholder="Search by enrollment number" value="{{ enrollment_filter }}">
+                                        <span class="input-group-text"><i class="fas fa-id-card"></i></span>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="input-group">
+                                        <input type="text" name="subject_filter" class="form-control" placeholder="Search by subject" value="{{ subject_filter }}">
+                                        <span class="input-group-text"><i class="fas fa-book"></i></span>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="input-group">
+                                        <input type="date" name="start_date" class="form-control" placeholder="Start Date (YYYY-MM-DD)" value="{{ start_date }}">
+                                        <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <div class="input-group">
+                                        <input type="date" name="end_date" class="form-control" placeholder="End Date (YYYY-MM-DD)" value="{{ end_date }}">
+                                        <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-end">
+                                <button type="submit" class="btn btn-primary">Search</button>
+                                <a href="{% url 'attendance' %}" class="btn btn-secondary ms-2">Clear Filters</a>
+                            </div>
+                        </form>
+                    {% endif %}
+                    {% if semester_attendance %}
+                        {% for semester_data in semester_attendance %}
+                            <div class="card-content mb-4">
+                                <h4 class="mt-4">Semester {{ semester_data.semester.semester_number }} - {{ semester_data.semester.course.name|default:'N/A' }}</h4>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover align-middle">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th class="px-3">Student Name</th>
+                                                <th class="px-3">Enrollment Number</th>
+                                                <th class="px-3">Subject</th>
+                                                <th class="px-3">Date</th>
+                                                <th class="px-3">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for record in semester_data.records %}
+                                                <tr>
+                                                    <td class="px-3">{{ record.student.name }}</td>
+                                                    <td class="px-3">{{ record.student.enrollment_id }}</td>
+                                                    <td class="px-3">{{ record.subject.name }} ({{ record.subject.code|default:'N/A' }})</td>
+                                                    <td class="px-3">{{ record.date|date:"d/m/Y" }}</td>
+                                                    <td class="px-3">{{ record.get_status_display }}</td>
+                                                </tr>
+                                            {% empty %}
+                                                <tr>
+                                                    <td colspan="5" class="text-center">No attendance records found for this semester.</td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <p><strong>Total Classes:</strong> {{ semester_data.total_classes }}</p>
+                                <p><strong>Present:</strong> {{ semester_data.present_classes }}</p>
+                                {% if semester_data.records_paginator.num_pages > 1 %}
+                                    <nav aria-label="Records pagination for semester {{ semester_data.semester.id }}">
+                                        <ul class="pagination justify-content-center mt-3">
+                                            {% if semester_data.records.has_previous %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page={{ semester_attendance.number }}&records_page_{{ semester_data.semester.id }}={{ semester_data.records.previous_page_number }}{% if student_filter %}&student_filter={{ student_filter }}{% endif %}{% if enrollment_filter %}&enrollment_filter={{ enrollment_filter }}{% endif %}{% if subject_filter %}&subject_filter={{ subject_filter }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}">Previous</a>
+                                                </li>
+                                            {% else %}
+                                                <li class="page-item disabled">
+                                                    <span class="page-link">Previous</span>
+                                                </li>
+                                            {% endif %}
+                                            {% for num in semester_data.records_paginator.page_range %}
+                                                <li class="page-item{% if semester_data.records.number == num %} active{% endif %}"{% if semester_data.records.number == num %} aria-current="page"{% endif %}>
+                                                    <a class="page-link" href="?page={{ semester_attendance.number }}&records_page_{{ semester_data.semester.id }}={{ num }}{% if student_filter %}&student_filter={{ student_filter }}{% endif %}{% if enrollment_filter %}&enrollment_filter={{ enrollment_filter }}{% endif %}{% if subject_filter %}&subject_filter={{ subject_filter }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}">{{ num }}</a>
+                                                </li>
+                                            {% endfor %}
+                                            {% if semester_data.records.has_next %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page={{ semester_attendance.number }}&records_page_{{ semester_data.semester.id }}={{ semester_data.records.next_page_number }}{% if student_filter %}&student_filter={{ student_filter }}{% endif %}{% if enrollment_filter %}&enrollment_filter={{ enrollment_filter }}{% endif %}{% if subject_filter %}&subject_filter={{ subject_filter }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}">Next</a>
+                                                </li>
+                                            {% else %}
+                                                <li class="page-item disabled">
+                                                    <span class="page-link">Next</span>
+                                                </li>
+                                            {% endif %}
+                                        </ul>
+                                    </nav>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                        {% if semester_attendance.has_other_pages %}
+                            <nav aria-label="Semester pagination">
+                                <ul class="pagination justify-content-center mt-4">
+                                    {% if semester_attendance.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ semester_attendance.previous_page_number }}{% if student_filter %}&student_filter={{ student_filter }}{% endif %}{% if enrollment_filter %}&enrollment_filter={{ enrollment_filter }}{% endif %}{% if subject_filter %}&subject_filter={{ subject_filter }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}">Previous</a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item disabled">
+                                            <span class="page-link">Previous</span>
+                                        </li>
+                                    {% endif %}
+                                    {% for num in semester_attendance.paginator.page_range %}
+                                        <li class="page-item{% if semester_attendance.number == num %} active{% endif %}"{% if semester_attendance.number == num %} aria-current="page"{% endif %}>
+                                            <a class="page-link" href="?page={{ num }}{% if student_filter %}&student_filter={{ student_filter }}{% endif %}{% if enrollment_filter %}&enrollment_filter={{ enrollment_filter }}{% endif %}{% if subject_filter %}&subject_filter={{ subject_filter }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}">{{ num }}</a>
+                                        </li>
+                                    {% endfor %}
+                                    {% if semester_attendance.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ semester_attendance.next_page_number }}{% if student_filter %}&student_filter={{ student_filter }}{% endif %}{% if enrollment_filter %}&enrollment_filter={{ enrollment_filter }}{% endif %}{% if subject_filter %}&subject_filter={{ subject_filter }}{% endif %}{% if start_date %}&start_date={{ start_date }}{% endif %}{% if end_date %}&end_date={{ end_date }}{% endif %}">Next</a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item disabled">
+                                            <span class="page-link">Next</span>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-muted text-center">No attendance records found.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+    </div>
+{% else %}
+    <div class="alert alert-danger" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>Please log in to view attendance.
+    </div>
+{% endif %}
+
+<!-- JavaScript for Staff View -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const courseSelect = document.getElementById('id_course');
+    const lectureSelect = document.getElementById('id_lecture');
+    const studentTableBody = document.getElementById('student-table-body');
+    const submitButton = document.getElementById('submit-attendance');
+    const allPresentButton = document.getElementById('all-present-button');
+    const form = document.getElementById('attendance-form');
+    const errorDiv = document.getElementById('form-error');
+
+    if (courseSelect && lectureSelect && studentTableBody && submitButton && allPresentButton && form && errorDiv) {
+        submitButton.disabled = true;
+        allPresentButton.disabled = true;
+
+        function validateForm() {
+            const courseValid = courseSelect.value !== '';
+            const lectureValid = lectureSelect.value !== '';
+            const studentsLoaded = studentTableBody.querySelectorAll('tr').length > 0 && !studentTableBody.innerHTML.includes('No students enrolled') && !studentTableBody.innerHTML.includes('Select a course and lecture');
+            submitButton.disabled = !(courseValid && lectureValid && studentsLoaded);
+            allPresentButton.disabled = !(courseValid && lectureValid && studentsLoaded);
+            return courseValid && lectureValid && studentsLoaded;
+        }
+
+        function updateCheckboxes() {
+            document.querySelectorAll('.present-checkbox').forEach(present => {
+                const row = present.closest('tr');
+                const absent = row.querySelector('.absent-checkbox');
+                const statusInput = row.querySelector('input[name$="-status"]');
+
+                present.addEventListener('change', function() {
+                    if (this.checked) {
+                        absent.checked = false;
+                        statusInput.value = 'P';
+                    } else if (!absent.checked) {
+                        absent.checked = true;
+                        statusInput.value = 'A';
+                    }
+                    validateForm();
+                });
+
+                absent.addEventListener('change', function() {
+                    if (this.checked) {
+                        present.checked = false;
+                        statusInput.value = 'A';
+                    } else if (!present.checked) {
+                        present.checked = true;
+                        statusInput.value = 'P';
+                    }
+                    validateForm();
+                });
+            });
+        }
+
+        courseSelect.addEventListener('change', function() {
+            const courseId = this.value;
+            lectureSelect.innerHTML = '<option value="">Select Lecture</option>';
+            studentTableBody.innerHTML = '<tr><td colspan="4" class="text-center">Select a course and lecture to load students.</td></tr>';
+            submitButton.disabled = true;
+            allPresentButton.disabled = true;
+
+            if (courseId) {
+                fetch(`/students/get-lectures/?course_id=${courseId}`, {
+                    headers: {'X-Requested-With': 'XMLHttpRequest'}
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.lectures && data.lectures.length > 0) {
+                            data.lectures.forEach(lecture => {
+                                const option = document.createElement('option');
+                                option.value = lecture.id;
+                                option.text = `${lecture.name} - ${lecture.lecture_date}`;
+                                lectureSelect.appendChild(option);
+                            });
+                        } else {
+                            lectureSelect.innerHTML = '<option value="">No lectures available</option>';
+                        }
+                        validateForm();
+                    })
+                    .catch(error => {
+                        console.error('Error fetching lectures:', error);
+                        lectureSelect.innerHTML = '<option value="">Error loading lectures</option>';
+                        errorDiv.innerHTML = `Error loading lectures: ${error.message}`;
+                        errorDiv.classList.remove('d-none');
+                    });
+            }
+            validateForm();
+        });
+
+        lectureSelect.addEventListener('change', function() {
+            const lectureId = this.value;
+            if (lectureId) {
+                studentTableBody.innerHTML = '<tr><td colspan="4" class="text-center">Loading students...</td></tr>';
+                submitButton.disabled = true;
+                allPresentButton.disabled = true;
+
+                fetch(`/students/get-students/?lecture_id=${lectureId}`, {
+                    headers: {'X-Requested-With': 'XMLHttpRequest'}
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Fetch response:', data);
+                        studentTableBody.innerHTML = '';
+                        if (data.students && data.students.length > 0) {
+                            const managementForm = `
+                                <input type="hidden" name="form-TOTAL_FORMS" id="id_form-TOTAL_FORMS" value="${data.students.length}">
+                                <input type="hidden" name="form-INITIAL_FORMS" id="id_form-INITIAL_FORMS" value="0">
+                                <input type="hidden" name="form-MIN_NUM_FORMS" value="0">
+                                <input type="hidden" name="form-MAX_NUM_FORMS" value="1000">
+                            `;
+                            form.querySelector('#student-table-body').insertAdjacentHTML('beforebegin', managementForm);
+
+                            data.students.forEach((student, index) => {
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td class="px-3 align-middle">${student.enrollment_id || 'N/A'}</td>
+                                    <td class="px-3 align-middle">${student.name || 'Unknown'}</td>
+                                    <td class="px-3 align-middle">
+                                        <div class="form-check form-check-inline d-flex flex-column align-items-center">
+                                            <label class="form-check-label mb-1" for="form-${index}-present">Present</label>
+                                            <input type="checkbox" name="form-${index}-present" id="form-${index}-present" class="form-check-input present-checkbox">
+                                            <input type="hidden" name="form-${index}-student" value="${student.id}">
+                                            <input type="hidden" name="form-${index}-status" value="A">
+                                        </div>
+                                    </td>
+                                    <td class="px-3 align-middle">
+                                        <div class="form-check form-check-inline d-flex flex-column align-items-center">
+                                            <label class="form-check-label mb-1" for="form-${index}-absent">Absent</label>
+                                            <input type="checkbox" name="form-${index}-absent" id="form-${index}-absent" class="form-check-input absent-checkbox" checked>
+                                        </div>
+                                    </td>
+                                `;
+                                studentTableBody.appendChild(row);
+                            });
+                            updateCheckboxes();
+                            console.log('Students loaded:', data.students.length);
+                        } else {
+                            studentTableBody.innerHTML = '<tr><td colspan="4" class="text-center">No students enrolled for this lecture.</td></tr>';
+                            console.log('No students found in response');
+                        }
+                        validateForm();
+                    })
+                    .catch(error => {
+                        console.error('Error fetching students:', error);
+                        studentTableBody.innerHTML = `<tr><td colspan="4" class="text-center">Error loading students: ${error.message}</td></tr>`;
+                        submitButton.disabled = true;
+                        allPresentButton.disabled = true;
+                        errorDiv.innerHTML = `Error loading students: ${error.message}`;
+                        errorDiv.classList.remove('d-none');
+                    });
+            } else {
+                studentTableBody.innerHTML = '<tr><td colspan="4" class="text-center">Select a course and lecture to load students.</td></tr>';
+                submitButton.disabled = true;
+                allPresentButton.disabled = true;
+                validateForm();
+            }
+        });
+
+        allPresentButton.addEventListener('click', function() {
+            document.querySelectorAll('.present-checkbox').forEach(present => {
+                present.checked = true;
+                const row = present.closest('tr');
+                row.querySelector('.absent-checkbox').checked = false;
+                row.querySelector('input[name$="-status"]').value = 'P';
+            });
+            validateForm();
+            const formData = new FormData(form);
+            formData.append('all_present', 'true');
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-Token': form.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const successDiv = document.createElement('div');
+                        successDiv.className = 'alert alert-success';
+                        successDiv.innerHTML = 'Attendance recorded successfully!';
+                        form.prepend(successDiv);
+                        setTimeout(() => successDiv.remove(), 5000);
+                        window.location.reload();
+                    } else {
+                        submitButton.disabled = false;
+                        allPresentButton.disabled = false;
+                        let errorMsg = 'Error saving attendance:<ul>';
+                        if (data.errors) {
+                            if (data.errors.formset_non_form_errors) {
+                                errorMsg += `<li>Formset: ${data.errors.formset_non_form_errors.join(', ')}</li>`;
+                            }
+                            if (data.errors.formset_errors) {
+                                data.errors.formset_errors.forEach((formErrors, index) => {
+                                    if (Object.keys(formErrors).length > 0) {
+                                        errorMsg += `<li>Student ${index + 1}: ${JSON.stringify(formErrors)}</li>`;
+                                    }
+                                });
+                            }
+                            if (data.errors.filter_form_errors) {
+                                data.errors.filter_form_errors.forEach(error => {
+                                    errorMsg += `<li>${error.field}: ${error.errors.join(', ')}</li>`;
+                                });
+                            }
+                        } else {
+                            errorMsg += '<li>Unknown error occurred.</li>';
+                        }
+                        errorMsg += '</ul>';
+                        errorDiv.innerHTML = errorMsg;
+                        errorDiv.classList.remove('d-none');
+                        console.error('Form errors:', data.errors);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error submitting form:', error);
+                    submitButton.disabled = false;
+                    allPresentButton.disabled = false;
+                    errorDiv.innerHTML = 'Error submitting attendance. Please try again.';
+                    errorDiv.classList.remove('d-none');
+                });
+        });
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (!validateForm()) {
+                errorDiv.innerHTML = 'Please select a course, lecture, and ensure students are loaded.';
+                errorDiv.classList.remove('d-none');
+                return;
+            }
+
+            submitButton.disabled = true;
+            allPresentButton.disabled = true;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+            errorDiv.innerHTML = '';
+            errorDiv.classList.add('d-none');
+
+            const formData = new FormData(form);
+            console.log('Form data:', Object.fromEntries(formData));
+
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-Token': form.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const successDiv = document.createElement('div');
+                        successDiv.className = 'alert alert-success';
+                        successDiv.innerHTML = 'Attendance recorded successfully!';
+                        form.prepend(successDiv);
+                        setTimeout(() => successDiv.remove(), 5000);
+                        window.location.reload();
+                    } else {
+                        submitButton.disabled = false;
+                        allPresentButton.disabled = false;
+                        submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Submit Attendance';
+                        let errorMsg = 'Error saving attendance:<ul>';
+                        if (data.errors) {
+                            if (data.errors.formset_non_form_errors) {
+                                errorMsg += `<li>Formset: ${data.errors.formset_non_form_errors.join(', ')}</li>`;
+                            }
+                            if (data.errors.formset_errors) {
+                                data.errors.formset_errors.forEach((formErrors, index) => {
+                                    if (Object.keys(formErrors).length > 0) {
+                                        errorMsg += `<li>Student ${index + 1}: ${JSON.stringify(formErrors)}</li>`;
+                                    }
+                                });
+                            }
+                            if (data.errors.filter_form_errors) {
+                                data.errors.filter_form_errors.forEach(error => {
+                                    errorMsg += `<li>${error.field}: ${error.errors.join(', ')}</li>`;
+                                });
+                            }
+                        } else {
+                            errorMsg += '<li>Unknown error occurred.</li>';
+                        }
+                        errorMsg += '</ul>';
+                        errorDiv.innerHTML = errorMsg;
+                        errorDiv.classList.remove('d-none');
+                        console.error('Form errors:', data.errors);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error submitting form:', error);
+                    submitButton.disabled = false;
+                    allPresentButton.disabled = false;
+                    submitButton.innerHTML = '<i class="fas fa-save me-2"></i>Submit Attendance';
+                    errorDiv.innerHTML = 'Error submitting attendance. Please try again.';
+                    errorDiv.classList.remove('d-none');
+                });
+        });
+
+        // Trigger change if course or lecture is pre-selected
+        if (courseSelect.value) {
+            courseSelect.dispatchEvent(new Event('change'));
+        }
+        if (lectureSelect.value) {
+            lectureSelect.dispatchEvent(new Event('change'));
+        }
+
+        validateForm();
+        updateCheckboxes();
+    }
+});
+</script>
+{% endblock %}

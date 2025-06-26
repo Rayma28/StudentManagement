@@ -40,9 +40,6 @@
                     </div>
                 </div>
             </form>
-            {% if current_semester %}
-            <h3 class="text-xl font-semibold mb-3">Results for Semester {{ current_semester.semester_number }} ({{ current_semester.course.name }})</h3>
-            {% endif %}
             <table class="table table-bordered">
                 <thead>
                     <tr class="bg-light">
@@ -78,13 +75,12 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="9" class="text-center">No results found for this semester.</td>
+                        <td colspan="9" class="text-center">No results found. Please check filters or contact the administrator.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
-            <!-- Pagination for Staff when a student is selected -->
-            {% if student_selected and page_obj.has_other_pages %}
+            {% if student_selected and page_obj and page_obj.paginator.num_pages > 1 %}
             <nav aria-label="Semester pagination">
                 <ul class="pagination justify-content-center">
                     {% if page_obj.has_previous %}
@@ -111,8 +107,10 @@
     <!-- Student View: Show Own Results with Pagination -->
     <section class="mb-8">
         <div class="card p-4">
-            {% if current_semester %}
-            <h3 class="text-xl font-semibold mb-3">Results for Semester {{ current_semester.semester_number }} ({{ current_semester.course.name }})</h3>
+            {% if results %}
+            <h3 class="text-xl font-semibold mb-3">Results for Semester {{ results.0.semester.semester_number }} ({{ results.0.semester.course.name }})</h3>
+            {% else %}
+            <h3 class="text-xl font-semibold mb-3">No Results Available</h3>
             {% endif %}
             <table class="table table-bordered">
                 <thead>
@@ -139,13 +137,12 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="text-center">No results found for this semester.</td>
+                        <td colspan="7" class="text-center">No results found. Please contact the administrator.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
-            <!-- Pagination for Students -->
-            {% if page_obj.has_other_pages %}
+            {% if page_obj and page_obj.paginator.num_pages > 1 %}
             <nav aria-label="Semester pagination">
                 <ul class="pagination justify-content-center">
                     {% if page_obj.has_previous %}

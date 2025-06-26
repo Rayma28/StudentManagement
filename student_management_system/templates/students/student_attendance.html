@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+
+{% block title %}Attendance for {{ student.name }} - Student Management System{% endblock %}
+
+{% block content %}
+{% if user.is_authenticated and user.is_staff %}
+<div class="container mx-auto p-4">
+    <h2 class="text-3xl font-bold mb-6"><i class="fas fa-clipboard-check me-2"></i>Attendance for {{ student.name }} ({{ student.enrollment_id }})</h2>
+    
+    <!-- Student View: Semester-wise Attendance -->
+    <section class="my-5">
+        <div class="card p-8 shadow-sm">
+            <div class="card-content p-4">
+                <h3 class="text-xl font-semibold mb-4">Attendance Records</h3>
+                {% if semester_attendance %}
+                    {% for semester_data in semester_attendance %}
+                    <div class="card-content p-4">
+                        <h4 class="mt-2">Semester {{ semester_data.semester.semester_number }} - {{ semester_data.semester.course.name|default:'N/A' }}</h4>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover">
+                                <thead>
+                                    <tr class="bg-light">
+                                        <th>Subject</th>
+                                        <th>Total Classes</th>
+                                        <th>Present</th>
+                                        <th>Absent</th>
+                                        <th>Attendance Percentage</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for summary in semester_data.subject_summary %}
+                                    <tr>
+                                        <td>{{ summary.subject.name }} ({{ summary.subject.code|default:'N/A' }})</td>
+                                        <td>{{ summary.total_classes }}</td>
+                                        <td>{{ summary.present_classes }}</td>
+                                        <td>{{ summary.absent_classes }}</td>
+                                        <td>{{ summary.percentage|default:'0.00' }}%</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center">No subjects with attendance records found.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <p><strong>Total Classes:</strong> {{ semester_data.total_classes }}</p>
+                        <p><strong>Present:</strong> {{ semester_data.present_classes }}</p>
+                        <p><strong>Attendance Percentage:</strong> {{ semester_data.percentage|default:'0.00' }}%</p>
+                        {% if semester_data.percentage %}
+                        <div class="mt-4" style="max-width: 250px; margin: 0 auto;">
+                            <canvas id="semesterChart_{{ semester_data.semester.id }}"></canvas>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    {% if semester_attendance.has_other_pages %}
+                    <nav aria-label="Semester pagination">
+                        <ul class="pagination justify-content-center mt-4">
+                            {% if semester_attendance.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ semester_attendance.previous_page_number }}">Previous</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">Previous</span>
+                            </li>
+                            {% endif %}
+                            {% for num in semester_attendance.paginator.page_range %}
+                            <li class="page-item {% if semester_attendance.number == num %}active{% endif %}" {% if semester_attendance.number == num %}aria-current="page"{% endif %}>
+                                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                            </li>
+                            {% endfor %}
+                            {% if semester_attendance.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ semester_attendance.next_page_number }}">Next</a>
+                            </li>
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">Next</span>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                {% else %}
+                    <p class="text-muted text-center">No attendance records found for any semester.</p>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+</div>
+{% else %}
+<div class="alert alert-danger" role="alert">
+    <i class="fas fa-exclamation-triangle me-2"></i>Access Denied: This page is only accessible to staff members.
+</div>
+{% endif %}
+
+<!-- Chart.js for Pie Charts -->
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Pie Charts for Student View
+    const semesterCharts = [
+        {% for semester_data in semester_attendance %}
+            {% if semester_data.percentage %}
+                {
+                    id: 'semesterChart_{{ semester_data.semester.id }}',
+                    percentage: {{ semester_data.percentage|floatformat:2|default:'0.00' }},
+                    semesterNumber: {{ semester_data.semester.semester_number }}
+                }{% if not forloop.last %},{% endif %}
+            {% endif %}
+        {% endfor %}
+    ];
+
+    console.log('Semester charts data:', semesterCharts); // Debug chart data
+
+    semesterCharts.forEach(chart => {
+        const ctx = document.getElementById(chart.id);
+        if (ctx) {
+            console.log(`Rendering chart for ${chart.id}:`, chart.percentage); // Debug chart rendering
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Present', 'Absent'],
+                    datasets: [{
+                        data: [parseFloat(chart.percentage), (100.0 - parseFloat(chart.percentage)).toFixed(2)],
+                        backgroundColor: [
+                            'rgba(54, 162, 235, 0.7)', // Blue for Present
+                            'rgba(255, 99, 132, 0.7)' // Red for Absent
+                        ],
+                        borderColor: [
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 99, 132, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        },
+                        title: {
+                            display: true,
+                            text: `Semester ${chart.semesterNumber} Attendance`
+                        }
+                    },
+                    animation: {
+                        animateScale: true,
+                        animateRotate: true,
+                        duration: 1000
+                    }
+                }
+            });
+        } else {
+            console.error(`Canvas element not found for ${chart.id}`);
+        }
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}
