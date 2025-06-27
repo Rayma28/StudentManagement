@@ -54,20 +54,15 @@ def upload_result(request):
     
     return render(request, 'students/upload_result.html', {'form': form})
 
+@require_GET
 @login_required
-def get_subjects(request):
-    semester_id = request.GET.get('semester_id')
-    logger.debug(f"Request URL: {request.get_full_path()}, Semester ID: {semester_id}")
-    
-    if not semester_id:
-        return JsonResponse({'error': 'semester_id is required'}, status=400)
-    
+def get_subjects(request, semester_id):
     try:
         subjects = Subject.objects.filter(semester_id=semester_id).values('id', 'name')
         return JsonResponse({'subjects': list(subjects)})
     except Exception as e:
-        logger.error(f"Error fetching subjects: {str(e)}")
-        return JsonResponse({'error': 'An error occurred while fetching subjects'}, status=500)
+        logger.error(f"Error fetching subjects for semester {semester_id}: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
 
 from .models import (
     Subject, Student, Semester, Attendance, FeeRecord, Department, Course,
