@@ -18,6 +18,13 @@
                 <h5><i class="fas fa-plus-circle me-2"></i>Add New Result</h5>
             </div>
             <div class="card-body">
+                {% if messages %}
+                    <ul class="messages">
+                        {% for message in messages %}
+                            <li class="alert alert-{{ message.tags }}">{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
                 <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
                     <div class="row">
@@ -26,7 +33,7 @@
                                 <label for="{{ form.student.id_for_label }}" class="form-label">
                                     <i class="fas fa-user me-1"></i>Student
                                 </label>
-                                {{ form.student }}
+                                {{ form.student|add_class:"form-select" }}
                                 {% if form.student.errors %}
                                     <div class="text-danger">{{ form.student.errors }}</div>
                                 {% endif %}
@@ -37,7 +44,7 @@
                                 <label for="{{ form.semester.id_for_label }}" class="form-label">
                                     <i class="fas fa-calendar-alt me-1"></i>Semester
                                 </label>
-                                {{ form.semester }}
+                                {{ form.semester|add_class:"form-select" }}
                                 {% if form.semester.errors %}
                                     <div class="text-danger">{{ form.semester.errors }}</div>
                                 {% endif %}
@@ -65,7 +72,7 @@
                                 <label for="{{ form.marks.id_for_label }}" class="form-label">
                                     <i class="fas fa-trophy me-1"></i>Marks Obtained
                                 </label>
-                                {{ form.marks }}
+                                {{ form.marks|add_class:"form-control" }}
                                 {% if form.marks.errors %}
                                     <div class="text-danger">{{ form.marks.errors }}</div>
                                 {% endif %}
@@ -76,7 +83,7 @@
                                 <label for="{{ form.total_marks.id_for_label }}" class="form-label">
                                     <i class="fas fa-calculator me-1"></i>Total Marks
                                 </label>
-                                {{ form.total_marks }}
+                                {{ form.total_marks|add_class:"form-control" }}
                                 {% if form.total_marks.errors %}
                                     <div class="text-danger">{{ form.total_marks.errors }}</div>
                                 {% endif %}
@@ -87,7 +94,7 @@
                                 <label for="{{ form.grade.id_for_label }}" class="form-label">
                                     <i class="fas fa-medal me-1"></i>Grade
                                 </label>
-                                {{ form.grade }}
+                                {{ form.grade|add_class:"form-control" }}
                                 {% if form.grade.errors %}
                                     <div class="text-danger">{{ form.grade.errors }}</div>
                                 {% endif %}
@@ -101,7 +108,7 @@
                                 <label for="{{ form.exam_date.id_for_label }}" class="form-label">
                                     <i class="fas fa-calendar me-1"></i>Exam Date
                                 </label>
-                                {{ form.exam_date }}
+                                {{ form.exam_date|add_class:"form-control" }}
                                 {% if form.exam_date.errors %}
                                     <div class="text-danger">{{ form.exam_date.errors }}</div>
                                 {% endif %}
@@ -112,7 +119,7 @@
                                 <label for="{{ form.result_file.id_for_label }}" class="form-label">
                                     <i class="fas fa-file me-1"></i>Result File (Optional)
                                 </label>
-                                {{ form.result_file }}
+                                {{ form.result_file|add_class:"form-control" }}
                                 {% if form.result_file.errors %}
                                     <div class="text-danger">{{ form.result_file.errors }}</div>
                                 {% endif %}
@@ -188,7 +195,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (semesterId) {
                 subjectSelect.disabled = true;
                 subjectSelect.innerHTML = '<option value="">Loading subjects...</option>';
-                console.log('Fetching subjects for semester:', semesterId);
 
                 fetch(`/students/get-subjects/?semester_id=${semesterId}`, {
                     headers: {
@@ -217,13 +223,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         } else {
                             console.log('No subjects found for semester');
                             subjectSelect.innerHTML = '<option value="">No subjects available</option>';
-                            subjectSelect.disabled = false; // Enable for user interaction
+                            subjectSelect.disabled = true;
                         }
                     })
                     .catch(error => {
                         console.error('Error fetching subjects:', error);
                         subjectSelect.innerHTML = '<option value="">Error loading subjects</option>';
-                        subjectSelect.disabled = false; // Enable for user interaction
+                        subjectSelect.disabled = true;
+                        alert('Failed to load subjects: ' + error.message);
                     });
             } else {
                 console.log('No semester selected, disabling subject dropdown');
@@ -232,7 +239,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Trigger change event on page load to populate subjects if semester is pre-selected
+        // Trigger change event on page load if semester is pre-selected
         if (semesterSelect.value) {
             console.log('Pre-selected semester detected:', semesterSelect.value);
             semesterSelect.dispatchEvent(new Event('change'));
