@@ -9,6 +9,8 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 import json
 import logging
 from datetime import datetime
+from django.forms import formset_factory
+from django.db.models import F
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +39,9 @@ def student_profile(request):
 
 @login_required
 def upload_result(request):
+    student = None if request.user.is_staff else get_object_or_404(Student, user=request.user)
+    
     if request.method == 'POST':
-        student = None if request.user.is_staff else get_object_or_404(Student, user=request.user)
         form = ResultForm(request.POST, request.FILES, student=student)
         if form.is_valid():
             result = form.save()
@@ -47,20 +50,25 @@ def upload_result(request):
         else:
             messages.error(request, 'Please correct the errors below.')
     else:
-        student = None if request.user.is_staff else get_object_or_404(Student, user=request.user)
         form = ResultForm(student=student)
     
     return render(request, 'students/upload_result.html', {'form': form})
 
-from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib import messages
-from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-from django.forms import formset_factory
-from django.db.models import F
-import logging
-import json
+@login_required
+def get_subjects(request):
+    semester_id = request.GET.get('semester_id')
+    logger.debug(f"Request URL: {request.get_full_path()}, Semester ID: {semester_id}")
+    
+    if not semester_id:
+        return JsonResponse({'error': 'semester_id is required'}, status=400)
+    
+    try:
+        subjects = Subject.objects.filter(semester_id=semester_id).values('id', 'name')
+        return JsonResponse({'subjects': list(subjects)})
+    except Exception as e:
+        logger.error(f"Error fetching subjects: {str(e)}")
+        return JsonResponse({'error': 'An error occurred while fetching subjects'}, status=500)
+
 from .models import (
     Subject, Student, Semester, Attendance, FeeRecord, Department, Course,
     Enrollment, Result, Lecture
